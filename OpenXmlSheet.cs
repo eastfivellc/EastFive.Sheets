@@ -15,5 +15,18 @@ namespace EastFive.Sheets
         {
             this.worksheetData = worksheetData;
         }
+
+        public IEnumerable<string[]> ReadRows()
+        {
+            var rows = worksheetData
+                .Descendants<Row>()
+                .Select(row => row
+                    .Elements<Cell>()
+                    .Select(
+                        (cell) => cell.CellValue.Text)
+                    .ToArray())
+                ;
+            return rows;
+        }
     }
 }
