@@ -10,5 +10,8 @@ namespace EastFive.Sheets
     {
         TResult ReadCustomValues<TResult>(Func<KeyValuePair<string, string>[], TResult> onResults);
         IEnumerable<ISheet> ReadSheets();
+        TResult WriteCustomProperties<TResult>(
+            Func<Action<string, string>, TResult> callback);
+        TResult WriteSheetByRow<TResult>(Func<Action<object[]>, TResult> p);
     }
 }

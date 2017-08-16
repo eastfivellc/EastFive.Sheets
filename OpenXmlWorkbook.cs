@@ -23,6 +23,29 @@ namespace EastFive.Sheets
             workbook = SpreadsheetDocument.Open(stream, false);
         }
 
+        private OpenXmlWorkbook(SpreadsheetDocument workbook)
+        {
+            this.workbook = workbook;
+        }
+
+        public static TResult Create<TResult>(System.IO.Stream stream,
+            Func<IUnderstandSheets, TResult> callback)
+        {
+            using (var workbook = new OpenXmlWorkbook(SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook)))
+            {
+                return callback(workbook);
+            }
+        }
+
+        public static TResult Read<TResult>(Stream stream,
+            Func<IUnderstandSheets, TResult> p)
+        {
+            using (var workbook = new OpenXmlWorkbook(stream))
+            {
+                return p(workbook);
+            }
+        }
+
         public TResult WriteCustomProperties<TResult>(
             Func<Action<string, string>, TResult> callback)
         {
@@ -46,118 +69,7 @@ namespace EastFive.Sheets
             writer.WriteStartElement(customPropsPart.Properties);
             writer.WriteEndElement();
             writer.Close();
-        }
-
-        public static IUnderstandSheets Create(System.IO.Stream stream)
-        {
-            using (var workbook = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook))
-            {
-                #region Custom properties
-
-
-                #endregion
-
-                //var worksheetsPart = workbook.AddWorkbookPart();
-                var workbookPart = workbook.AddWorkbookPart();
-                var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
-                var writer = OpenXmlWriter.Create(worksheetPart);
-                var worksheet = new Worksheet();
-                writer.WriteStartElement(worksheet);
-                writer.WriteStartElement(new SheetData());
-
-                #region Header Row
-
-                var headerRow = new Row();
-                var attributesHeaderRow = new OpenXmlAttribute[]
-                {
-                    // this is the row index
-                    new OpenXmlAttribute("r", null, "1")
-                };
-                writer.WriteStartElement(headerRow, attributesHeaderRow);
-                writer.WriteCell("ProductID (DO NOT MODIFY) Leave blank for new products");
-                var headerCellsCategories = categoryTitles.Select(
-                            (categoryTitle) => writer.WriteCell($"C:{categoryTitle}"))
-                            .ToArray();
-                writer.WriteCell("Product Name");
-                var headerCellsProperties = propertyNames
-                    .Select(
-                        (property) => writer.WriteCell($"P({property.Key.ToString("N")}){property.Value}"))
-                    .ToArray();
-                // this is for header row
-                writer.WriteEndElement();
-
-                #endregion
-
-                #region Body
-
-                var rows = products.Select(
-                    (result, index) =>
-                    {
-                        var attributeListRow = new OpenXmlAttribute[]
-                        {
-                            // this is the row index
-                            new OpenXmlAttribute("r", null, (index+2).ToString("N"))
-                        };
-
-                        var row = new Row();
-                        writer.WriteStartElement(row, attributeListRow);
-
-                        writer.WriteCell(result.ProductId);
-                        var categoryCells = result.Categories.Select(
-                            (category) => writer.WriteCell($"C({category.ToString("N")}){categoryLookup[category]}"))
-                            .ToArray();
-                        writer.WriteCell(result.Name);
-                        var cells = result.Properties.Select(
-                            (property) => writer.WriteCell(result.Properties[property.Key])).ToArray();
-
-                        // this is for Row
-                        writer.WriteEndElement();
-                        return row;
-                    }).ToArray();
-
-                #endregion
-
-                // this is for SheetData
-                writer.WriteEndElement();
-                // this is for Worksheet
-                writer.WriteEndElement();
-                writer.Close();
-
-                writer = OpenXmlWriter.Create(workbook.WorkbookPart);
-                writer.WriteStartElement(new Workbook());
-                writer.WriteStartElement(new Sheets());
-
-                // you can use object initialisers like this only when the properties
-                // are actual properties. SDK classes sometimes have property-like properties
-                // but are actually classes. For example, the Cell class has the CellValue
-                // "property" but is actually a child class internally.
-                // If the properties correspond to actual XML attributes, then you're fine.
-                writer.WriteElement(new Sheet()
-                {
-                    Name = "Sheet1", // products.ProductTypeId.ToString("N"),
-                    SheetId = 1,
-                    Id = workbook.WorkbookPart.GetIdOfPart(worksheetPart)
-                });
-
-                writer.WriteEndElement(); // Write end for WorkSheet Element
-
-
-                writer.WriteEndElement(); // Write end for WorkBook Element
-                writer.Close();
-
-                workbook.Close();
-
-                var response = request.CreateResponse(HttpStatusCode.OK);
-                stream.Position = 0;
-                response.Content = new StreamContent(stream);
-                response.Content.Headers.ContentType =
-                    new MediaTypeHeaderValue("application/vnd.openxmlformats-officedocument.spreadsheetml.template");
-                response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
-                {
-                    FileName = manufacturerId.HasValue ? $"{manufacturerId}.xlsx" : "products.xlsx",
-                };
-                return response;
-            }
+            return result;
         }
 
         public IEnumerable<ISheet> ReadSheets()
@@ -172,7 +84,7 @@ namespace EastFive.Sheets
                             {
                                 var wsPart = (WorksheetPart)(workbookPart.GetPartById(worksheet.Id));
                                 var worksheetData = wsPart.Worksheet;
-                                return new OpenXmlSheet(worksheetData);
+                                return new OpenXmlSheet(workbook, workbookPart, worksheet, worksheetData);
                             }))
                 .Select(openXmlSheet => (ISheet)openXmlSheet);
         }
@@ -196,6 +108,115 @@ namespace EastFive.Sheets
                 .SelectMany()
                 .ToArray();
             return onResults(customFileErrors);
+        }
+
+        public void Dispose()
+        {
+            this.workbook.Close();
+            this.workbook.Dispose();
+        }
+        
+        public TResult WriteSheetByRow<TResult>(Func<Action<object[]>, TResult> writeRowCallback)
+        {
+            this.workbook.AddWorkbookPart();
+            var workbookPart = this.workbook.WorkbookPart;
+            var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+
+            var writer = OpenXmlWriter.Create(worksheetPart);
+            
+            writer.WriteStartElement(new Worksheet());
+            writer.WriteStartElement(new SheetData());
+
+            var rowIndex = 1;
+            var result = writeRowCallback(
+                (rowCells) =>
+                {
+                    var row = new Row();
+                    var attributes = new OpenXmlAttribute[]
+                    {
+                        // this is the row index
+                        new OpenXmlAttribute("r", null, rowIndex.ToString())
+                    };
+                    writer.WriteStartElement(row, attributes);
+
+                    foreach (var rowCell in rowCells)
+                        WriteCell(writer, rowCell);
+
+                    writer.WriteEndElement();
+                    rowIndex++;
+                });
+
+            // this is for SheetData
+            writer.WriteEndElement();
+            // this is for Worksheet
+            writer.WriteEndElement();
+            writer.Close();
+
+
+            #region Stuff
+
+            var oxw = OpenXmlWriter.Create(this.workbook.WorkbookPart);
+            oxw.WriteStartElement(new Workbook());
+            oxw.WriteStartElement(new DocumentFormat.OpenXml.Spreadsheet.Sheets());
+
+            // you can use object initialisers like this only when the properties
+            // are actual properties. SDK classes sometimes have property-like properties
+            // but are actually classes. For example, the Cell class has the CellValue
+            // "property" but is actually a child class internally.
+            // If the properties correspond to actual XML attributes, then you're fine.
+            oxw.WriteElement(new Sheet()
+            {
+                Name = "Sheet1",
+                SheetId = 1,
+                Id = this.workbook.WorkbookPart.GetIdOfPart(worksheetPart)
+            });
+
+            // this is for Sheets
+            oxw.WriteEndElement();
+            // this is for Workbook
+            oxw.WriteEndElement();
+            oxw.Close();
+            
+            #endregion
+
+            return result;
+        }
+
+        private static Cell WriteCell(OpenXmlWriter writer, object value)
+        {
+            var cell = new Cell();
+
+            if (default(object) == value)
+                cell.DataType = CellValues.String;
+            else if (typeof(bool).IsInstanceOfType(value))
+                cell.DataType = CellValues.Boolean;
+            else if (typeof(DateTime).IsInstanceOfType(value))
+                cell.DataType = CellValues.Date;
+            else if (typeof(double).IsAssignableFrom(value.GetType()))
+                cell.DataType = CellValues.Number;
+            else
+                cell.DataType = CellValues.String;
+            
+            var cellValue = (default(object) == value)?
+                new CellValue("")
+                :
+                new CellValue(value.ToString());
+
+            //var attributeListCell = new OpenXmlAttribute[]
+            //{
+            //    new OpenXmlAttribute("t", null, "str")
+            //};
+            // it's suggested you also have the cell reference, but
+            // you'll have to calculate the correct cell reference yourself.
+            // Here's an example:
+            //attributeList.Add(new OpenXmlAttribute("r", null, "A1"));
+
+
+            writer.WriteStartElement(cell); //, attributeListCell);
+            writer.WriteElement(cellValue);
+            writer.WriteEndElement();
+
+            return cell;
         }
     }
 }
