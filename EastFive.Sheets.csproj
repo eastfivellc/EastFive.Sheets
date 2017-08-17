@@ -44,6 +44,8 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AdoXlsSheet.cs" />
+    <Compile Include="AdoXlsWorkbook.cs" />
     <Compile Include="Context.cs" />
     <Compile Include="ISheet.cs" />
     <Compile Include="IUnderstandSheets.cs" />
