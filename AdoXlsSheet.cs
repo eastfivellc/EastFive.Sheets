@@ -29,7 +29,7 @@ namespace EastFive.Sheets
                     while (rdr.Read())
                     {
                         yield return Enumerable
-                            .Range(0, rdr.FieldCount - 1)
+                            .Range(0, rdr.FieldCount)
                             .Select(
                                 columnIndex =>
                                 {
