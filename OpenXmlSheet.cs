@@ -86,21 +86,27 @@ namespace EastFive.Sheets
                         .Select(
                             (cell) =>
                             {
+                                if (cell.IsDefaultOrNull() || cell.CellValue.IsDefaultOrNull())
+                                    return string.Empty;
+                                
+                                if (!cell.HasAttributes)
+                                    return cell.CellValue.Text;
+
                                 try
                                 {
-                                    if (!cell.HasAttributes)
-                                        return cell.CellValue.Text;
-
-                                    var typeAttr = cell.GetAttribute("t", null);
-                                    if (typeAttr == default(OpenXmlAttribute))
-                                        return cell.CellValue.Text;
-
-                                    if (typeAttr.Value == "s")
+                                    foreach (var attribute in cell.GetAttributes())
                                     {
-                                        int sharedStringIndex;
-                                        if (int.TryParse(cell.CellValue.Text, out sharedStringIndex))
-                                            if (sharedStringIndex < sharedStrings.Length)
-                                                return sharedStrings[sharedStringIndex];
+                                        if (string.Compare(attribute.LocalName, "t", true) != 0)
+                                            continue;
+                                        var typeAttr = attribute;
+                                        if (typeAttr.Value == "s")
+                                        {
+                                            int sharedStringIndex;
+                                            if (int.TryParse(cell.CellValue.Text, out sharedStringIndex))
+                                                if (sharedStringIndex < sharedStrings.Length)
+                                                    return sharedStrings[sharedStringIndex];
+                                        }
+                                        continue;
                                     }
                                     return cell.CellValue.Text;
                                 }
