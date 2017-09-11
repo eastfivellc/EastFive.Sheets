@@ -9,6 +9,7 @@ using DocumentFormat.OpenXml;
 using System.Text.RegularExpressions;
 using BlackBarLabs.Extensions;
 using BlackBarLabs.Collections.Generic;
+using BlackBarLabs.Linq;
 
 namespace EastFive.Sheets
 {
@@ -60,12 +61,22 @@ namespace EastFive.Sheets
                 :
                 new string[] { };
 
-            var rows = worksheetData
+            var rowsFromWorksheet = worksheetData
                 .Descendants<Row>()
+                .ToArray();
+
+            var allColumnIndexes = rowsFromWorksheet
+                .SelectMany(
+                    row => row.Spans.Items.SelectMany(rowSpan => Extract(rowSpan)).Append(row.Elements<Cell>().Count()))
+                .ToArray();
+            var startIndex = allColumnIndexes.Min();
+            var lastIndex = allColumnIndexes.Max();
+            var columnIndexes = Enumerable.Range(startIndex, (lastIndex - startIndex) + 1);
+
+            var rows = rowsFromWorksheet
                 .Select(row =>
                 {
-                    var columns =
-                        row.Spans.Items.SelectMany(rowSpan => Extract(rowSpan))
+                    var columns = columnIndexes
                         .Select(colIndex => $"{(char)('A' + (colIndex - 1))}{row.RowIndex.ToString()}")
                         .ToArray();
                     var elements = row.Elements<Cell>().ToArray();
@@ -116,7 +127,8 @@ namespace EastFive.Sheets
                                 }
                             })
                         .ToArray();
-                });
+                })
+                .ToArray();
             return rows;
         }
     }
