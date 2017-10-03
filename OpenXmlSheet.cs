@@ -123,6 +123,7 @@ namespace EastFive.Sheets
                                 }
                                 catch (Exception ex)
                                 {
+                                    var type = ex.GetType();
                                     return cell.CellValue.Text;
                                 }
                             })
