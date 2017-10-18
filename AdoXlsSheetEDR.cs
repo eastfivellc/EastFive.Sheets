@@ -5,11 +5,11 @@ using System.Linq;
 
 namespace EastFive.Sheets
 {
-    class AdoXlsSheetERF : ISheet
+    class AdoXlsSheetEDR : ISheet
     {
         private DataTable dataTable;
 
-        public AdoXlsSheetERF(DataTable dataTable)
+        public AdoXlsSheetEDR(DataTable dataTable)
         {
             this.dataTable = dataTable;
         }

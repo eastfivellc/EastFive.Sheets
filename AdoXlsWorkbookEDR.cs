@@ -6,22 +6,21 @@ using System.IO;
 
 namespace EastFive.Sheets
 {
-    public class AdoXlsWorkbookERF : IUnderstandSheets
+    public class AdoXlsWorkbookEDR : IUnderstandSheets
     {
         private DataSet data;
 
-        public AdoXlsWorkbookERF()
+        public AdoXlsWorkbookEDR()
         {
 
         }
 
-        //public AdoXlsWorkbook(OleDbConnection conn, string filename)
-        public AdoXlsWorkbookERF(DataSet data)
+        public AdoXlsWorkbookEDR(DataSet data)
         {
             this.data = data;
         }
 
-        public static AdoXlsWorkbook Load(byte [] xlsFile)
+        public static AdoXlsWorkbookEDR Load(byte [] xlsFile)
         {
             using (MemoryStream stream = new MemoryStream(xlsFile))
             {
@@ -31,7 +30,7 @@ namespace EastFive.Sheets
                 using (var reader = ExcelReaderFactory.CreateReader(stream))
                 {
                     var data = reader.AsDataSet();
-                    return new AdoXlsWorkbook(data);
+                    return new AdoXlsWorkbookEDR(data);
                 }
             }
         }
@@ -53,7 +52,7 @@ namespace EastFive.Sheets
 
             foreach(DataTable table in data.Tables)
             {
-                yield return new AdoXlsSheet(table);
+                yield return new AdoXlsSheetEDR(table);
             }
         }
 

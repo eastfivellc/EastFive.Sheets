@@ -52,9 +52,9 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AdoXlsSheetERF.cs" />
+    <Compile Include="AdoXlsSheetEDR.cs" />
     <Compile Include="AdoXlsSheet.cs" />
-    <Compile Include="AdoXlsWorkbookERF.cs" />
+    <Compile Include="AdoXlsWorkbookEDR.cs" />
     <Compile Include="AdoXlsWorkbook.cs" />
     <Compile Include="Context.cs" />
     <Compile Include="CsvSheet.cs" />
