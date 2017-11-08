@@ -46,5 +46,10 @@ namespace EastFive.Sheets
                 }
             }
         }
+
+        public void WriteRows(string fileName, object[] rows)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

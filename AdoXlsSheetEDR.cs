@@ -33,5 +33,10 @@ namespace EastFive.Sheets
                     .ToArray();
             }
         }
+
+        public void WriteRows(string fileName, object[] rows)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

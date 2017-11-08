@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using CsvHelper;
 
 namespace EastFive.Sheets
 {
@@ -38,6 +39,24 @@ namespace EastFive.Sheets
             }
             parser.Close();
             return rows.ToArray();
+        }
+
+        public void WriteRows(string fileName, object[] rows)
+        {
+            // Note that the CSVHelper library expects the properties in the incoming object[] to be in the 
+            // format of 
+            //public class Foo
+            //{
+            //    public string Id { get; set; }
+            //    public string Thing1 { get; set; }
+            //}
+            //The properties must be public and must have a getter and setter
+
+            using (var textWriter = File.CreateText(fileName))
+            using (var writer = new CsvWriter(textWriter))
+            {
+                writer.WriteRecords(rows);
+            }
         }
     }
 }

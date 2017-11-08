@@ -132,5 +132,10 @@ namespace EastFive.Sheets
                 .ToArray();
             return rows;
         }
+
+        public void WriteRows(string fileName, object[] rows)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
