@@ -10,34 +10,35 @@ namespace EastFive.Sheets
 {
     public class CsvSheet : ISheet
     {
-        private readonly Stream fileStream;
+        private readonly Stream stream;
 
-        public CsvSheet(Stream fileStream)
+        public CsvSheet(Stream stream)
         {
-            this.fileStream = fileStream;    
+            this.stream = stream;    
         }
 
         public IEnumerable<string[]> ReadRows()
         {
-            fileStream.Seek(0, SeekOrigin.Begin);
+            stream.Seek(0, SeekOrigin.Begin);
             List<string[]> rows = new List<string[]>();
-            var parser = new Microsoft.VisualBasic.FileIO.TextFieldParser(fileStream);
-            parser.TextFieldType = Microsoft.VisualBasic.FileIO.FieldType.Delimited;
-            parser.SetDelimiters(",");
-            while (!parser.EndOfData)
+            using (var parser = new Microsoft.VisualBasic.FileIO.TextFieldParser(stream))
             {
-                string[] fields = new string[0];
-                try
+                parser.TextFieldType = Microsoft.VisualBasic.FileIO.FieldType.Delimited;
+                parser.SetDelimiters(",");
+                while (!parser.EndOfData)
                 {
-                    fields = parser.ReadFields(); 
+                    string[] fields = new string[0];
+                    try
+                    {
+                        fields = parser.ReadFields();
+                    }
+                    catch (Exception ex)
+                    {
+                        continue;
+                    }
+                    rows.Add(fields);
                 }
-                catch (Exception ex)
-                {
-                    continue;
-                }
-                rows.Add(fields);
             }
-            parser.Close();
             return rows.ToArray();
         }
 
@@ -54,6 +55,23 @@ namespace EastFive.Sheets
 
             using (var textWriter = File.CreateText(fileName))
             using (var writer = new CsvWriter(textWriter))
+            {
+                writer.WriteRecords(rows);
+            }
+        }
+
+        public void WriteRows(IEnumerable<object> rows, bool leaveOpen = false)
+        {
+            // Note that the CSVHelper library expects the properties in the incoming object[] to be in the 
+            // format of 
+            //public class Foo
+            //{
+            //    public string Id { get; set; }
+            //    public string Thing1 { get; set; }S
+            //}
+            //The properties must be public and must have a getter and setter
+            using (var streamWriter = new StreamWriter(stream, Encoding.UTF8, 4096, leaveOpen))
+            using (var writer = new CsvWriter(streamWriter))
             {
                 writer.WriteRecords(rows);
             }
