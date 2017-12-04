@@ -8,7 +8,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml;
 using System.Text.RegularExpressions;
 using BlackBarLabs.Extensions;
-using BlackBarLabs.Collections.Generic;
+using EastFive.Collections.Generic;
 using BlackBarLabs.Linq;
 
 namespace EastFive.Sheets
