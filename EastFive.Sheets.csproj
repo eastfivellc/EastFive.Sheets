@@ -61,6 +61,7 @@
     <Compile Include="AdoXlsWorkbook.cs" />
     <Compile Include="Context.cs" />
     <Compile Include="CsvSheet.cs" />
+    <Compile Include="CsvSheetExtensions.cs" />
     <Compile Include="ISheet.cs" />
     <Compile Include="IUnderstandSheets.cs" />
     <Compile Include="OpenXmlSheet.cs" />
