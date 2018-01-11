@@ -67,7 +67,14 @@ namespace EastFive.Sheets
 
             var allColumnIndexes = rowsFromWorksheet
                 .SelectMany(
-                    row => row.Spans.Items.SelectMany(rowSpan => Extract(rowSpan)).Append(row.Elements<Cell>().Count()))
+                    row =>
+                    {
+                        if(!row.Spans.IsDefaultOrNull())
+                            return row.Spans.Items.SelectMany(rowSpan => Extract(rowSpan)).Append(row.Elements<Cell>().Count());
+                        if (!row.ChildElements.IsDefaultOrNull())
+                            return row.ChildElements.Count().AsEnumerable().Append(1);
+                        return new int[] { };
+                    })
                 .ToArray();
             var startIndex = allColumnIndexes.Min();
             var lastIndex = allColumnIndexes.Max();
@@ -110,12 +117,16 @@ namespace EastFive.Sheets
                                         if (string.Compare(attribute.LocalName, "t", true) != 0)
                                             continue;
                                         var typeAttr = attribute;
-                                        if (typeAttr.Value == "s")
+                                        if (typeAttr.Value == "s") // Is int
                                         {
                                             int sharedStringIndex;
                                             if (int.TryParse(cell.CellValue.Text, out sharedStringIndex))
                                                 if (sharedStringIndex < sharedStrings.Length)
                                                     return sharedStrings[sharedStringIndex];
+                                        }
+                                        if (typeAttr.Value == "str")
+                                        {
+                                            return cell.CellValue.Text;
                                         }
                                         continue;
                                     }
