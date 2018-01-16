@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using BlackBarLabs.Extensions;
 using EastFive.Collections.Generic;
 using BlackBarLabs.Linq;
+using EastFive.Linq;
 
 namespace EastFive.Sheets
 {
