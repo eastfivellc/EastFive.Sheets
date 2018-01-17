@@ -11,6 +11,7 @@ using BlackBarLabs.Extensions;
 using EastFive.Collections.Generic;
 using BlackBarLabs.Linq;
 using EastFive.Linq;
+using EastFive.Extensions;
 
 namespace EastFive.Sheets
 {
