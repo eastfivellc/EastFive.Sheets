@@ -70,14 +70,14 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\BlackBarLabs.Core\EastFive.Core.csproj">
-      <Project>{73088F1B-3ACA-476B-AA45-B7D6660F1C73}</Project>
-      <Name>EastFive.Core</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BlackBarLabs.Core\EastFive.Core.csproj">
+      <Project>{AEC927EF-6AAE-4533-BBF6-539643684002}</Project>
+      <Name>EastFive.Core</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
