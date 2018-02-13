@@ -44,8 +44,8 @@ namespace EastFive.Sheets
             return onParsed(legend);
         }
 
-        public static TResult GetColumn<TEnum,TResult>(this string[] fields, Dictionary<TEnum, int> legend, TEnum column,
-            Func<string,TResult> setFunc, TResult defaultValue = default(TResult))
+        public static TResult GetColumn<TInput,TEnum,TResult>(this TInput[] fields, Dictionary<TEnum, int> legend, TEnum column,
+            Func<TInput,TResult> setFunc, TResult defaultValue = default(TResult))
         {
             return legend.TryGetValue(column, out int index) ? setFunc(fields[index]) : defaultValue;
         }
