@@ -60,7 +60,7 @@ namespace EastFive.Sheets
             }
         }
 
-        public void WriteRows(IEnumerable<object> rows, bool leaveOpen = false)
+        public void WriteRows<T>(IEnumerable<T> rows, bool leaveOpen = false)
         {
             // Note that the CSVHelper library expects the properties in the incoming object[] to be in the 
             // format of 
