@@ -17,7 +17,9 @@ namespace EastFive.Sheets
             this.conn = conn;
             this.sheetName = sheetName;
         }
-        
+
+        public string Name => sheetName;
+
         public IEnumerable<string[]> ReadRows()
         {
             using (var cmd = conn.CreateCommand())

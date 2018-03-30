@@ -12,6 +12,6 @@ namespace EastFive.Sheets
         IEnumerable<ISheet> ReadSheets();
         TResult WriteCustomProperties<TResult>(
             Func<Action<string, string>, TResult> callback);
-        TResult WriteSheetByRow<TResult>(Func<Action<object[]>, TResult> p);
+        TResult WriteSheetByRow<TResult>(Func<Action<object[]>, TResult> p, string sheetName = "Sheet1");
     }
 }

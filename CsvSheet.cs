@@ -17,6 +17,8 @@ namespace EastFive.Sheets
             this.stream = stream;    
         }
 
+        public string Name => "sheet";
+
         public IEnumerable<string[]> ReadRows()
         {
             stream.Seek(0, SeekOrigin.Begin);

@@ -14,6 +14,8 @@ namespace EastFive.Sheets
             this.dataTable = dataTable;
         }
 
+        public string Name => dataTable.TableName;
+
         public IEnumerable<string[]> ReadRows()
         {
             foreach(DataRow row in dataTable.Rows)

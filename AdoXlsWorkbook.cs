@@ -68,7 +68,7 @@ namespace EastFive.Sheets
             throw new NotImplementedException();
         }
 
-        public TResult WriteSheetByRow<TResult>(Func<Action<object[]>, TResult> p)
+        public TResult WriteSheetByRow<TResult>(Func<Action<object[]>, TResult> p, string sheetName = "Sheet1")
         {
             throw new NotImplementedException();
         }

@@ -12,12 +12,15 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using EastFive.Extensions;
 
 namespace EastFive.Sheets
 {
     public class OpenXmlWorkbook : IUnderstandSheets
     {
         private SpreadsheetDocument workbook;
+        private WorkbookPart workbookPart = default(WorkbookPart);
+        private IDictionary<string, WorksheetPart> sheets = new Dictionary<string, WorksheetPart>();
 
         public OpenXmlWorkbook(Stream stream)
         {
@@ -34,7 +37,42 @@ namespace EastFive.Sheets
         {
             using (var workbook = new OpenXmlWorkbook(SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook)))
             {
-                return callback(workbook);
+                var result = callback(workbook);
+
+                #region Create sheets that link to the workbook pages
+
+                var oxw = OpenXmlWriter.Create(workbook.workbook.WorkbookPart);
+                oxw.WriteStartElement(new Workbook());
+                oxw.WriteStartElement(new DocumentFormat.OpenXml.Spreadsheet.Sheets());
+
+                // you can use object initialisers like this only when the properties
+                // are actual properties. SDK classes sometimes have property-like properties
+                // but are actually classes. For example, the Cell class has the CellValue
+                // "property" but is actually a child class internally.
+                // If the properties correspond to actual XML attributes, then you're fine.
+
+                UInt32Value sheetCount = 1;
+                foreach (var sheet in workbook.sheets)
+                {
+                    var sheetCreated = new Sheet()
+                    {
+                        Name = sheet.Key,
+                        SheetId = sheetCount,
+                        Id = workbook.workbook.WorkbookPart.GetIdOfPart(sheet.Value)
+                    };
+                    oxw.WriteElement(sheetCreated);
+                    sheetCount++;
+                }
+
+                // this is for Sheets
+                oxw.WriteEndElement();
+                // this is for Workbook
+                oxw.WriteEndElement();
+                oxw.Close();
+
+                #endregion
+
+                return result;
             }
         }
 
@@ -113,18 +151,29 @@ namespace EastFive.Sheets
 
         public void Dispose()
         {
+            
+
             this.workbook.Close();
             this.workbook.Dispose();
         }
-        
-        public TResult WriteSheetByRow<TResult>(Func<Action<object[]>, TResult> writeRowCallback)
-        {
-            this.workbook.AddWorkbookPart();
-            var workbookPart = this.workbook.WorkbookPart;
-            var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
 
+        public struct CellReference
+        {
+            public string value;
+            public string formula;
+        }
+
+        public TResult WriteSheetByRow<TResult>(Func<Action<object[]>, TResult> writeRowCallback, string sheetName = "Sheet1")
+        {
+            if (this.workbookPart.IsDefaultOrNull())
+            {
+                this.workbook.AddWorkbookPart();
+                this.workbookPart = this.workbook.WorkbookPart;
+            }
+
+            var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
             var writer = OpenXmlWriter.Create(worksheetPart);
-            
+
             writer.WriteStartElement(new Worksheet());
             writer.WriteStartElement(new SheetData());
 
@@ -141,7 +190,7 @@ namespace EastFive.Sheets
                     writer.WriteStartElement(row, attributes);
 
                     foreach (var rowCell in rowCells)
-                        WriteCell(writer, rowCell);
+                        WriteCell(writer, rowCell, rowIndex);
 
                     writer.WriteEndElement();
                     rowIndex++;
@@ -153,39 +202,16 @@ namespace EastFive.Sheets
             writer.WriteEndElement();
             writer.Close();
 
-
-            #region Stuff
-
-            var oxw = OpenXmlWriter.Create(this.workbook.WorkbookPart);
-            oxw.WriteStartElement(new Workbook());
-            oxw.WriteStartElement(new DocumentFormat.OpenXml.Spreadsheet.Sheets());
-
-            // you can use object initialisers like this only when the properties
-            // are actual properties. SDK classes sometimes have property-like properties
-            // but are actually classes. For example, the Cell class has the CellValue
-            // "property" but is actually a child class internally.
-            // If the properties correspond to actual XML attributes, then you're fine.
-            oxw.WriteElement(new Sheet()
-            {
-                Name = "Sheet1",
-                SheetId = 1,
-                Id = this.workbook.WorkbookPart.GetIdOfPart(worksheetPart)
-            });
-
-            // this is for Sheets
-            oxw.WriteEndElement();
-            // this is for Workbook
-            oxw.WriteEndElement();
-            oxw.Close();
-            
-            #endregion
+            sheets.Add(sheetName, worksheetPart);
 
             return result;
         }
 
-        private static Cell WriteCell(OpenXmlWriter writer, object value)
+        private static Cell WriteCell(OpenXmlWriter writer, object value, int rowIndex)
         {
             var cell = new Cell();
+            //cell.CellReference = "";
+            var attributeListCell = new OpenXmlAttribute[] { };
 
             if (default(object) == value)
                 cell.DataType = CellValues.String;
@@ -198,23 +224,31 @@ namespace EastFive.Sheets
             else
                 cell.DataType = CellValues.String;
             
-            var cellValue = (default(object) == value)?
-                new CellValue("")
-                :
-                new CellValue(value.ToString());
+            writer.WriteStartElement(cell);
+            
+            if (default(object) == value)
+            {
+                var cellValue = new CellValue("");
+                writer.WriteElement(cellValue);
+            }
+            else if (typeof(CellReference).IsAssignableFrom(value.GetType()))
+            {
+                var cellRef = (CellReference)value;
+                
+                var formula = new DocumentFormat.OpenXml.Spreadsheet.CellFormula(cellRef.formula);
+                writer.WriteElement(formula);
+                var cellValue = new CellValue(cellRef.value);
+                writer.WriteElement(cellValue);
+                // <c r="H2" t="str">
+                //  <f>Manufacturer!A15</f>
+                //  <v>30</v>
+                //</c>
+            } else
+            {
+                var cellValue = new CellValue(value.ToString());
+                writer.WriteElement(cellValue);
+            }
 
-            //var attributeListCell = new OpenXmlAttribute[]
-            //{
-            //    new OpenXmlAttribute("t", null, "str")
-            //};
-            // it's suggested you also have the cell reference, but
-            // you'll have to calculate the correct cell reference yourself.
-            // Here's an example:
-            //attributeList.Add(new OpenXmlAttribute("r", null, "A1"));
-
-
-            writer.WriteStartElement(cell); //, attributeListCell);
-            writer.WriteElement(cellValue);
             writer.WriteEndElement();
 
             return cell;

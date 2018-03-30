@@ -22,6 +22,8 @@ namespace EastFive.Sheets
         private Worksheet worksheetData;
         private Sheet worksheet;
 
+        public string Name => worksheet.Name;
+
         public OpenXmlSheet(SpreadsheetDocument workbook, WorkbookPart workbookPart, Sheet worksheet, Worksheet worksheetData)
         {
             this.worksheetData = worksheetData;
