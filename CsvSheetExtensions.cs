@@ -31,6 +31,31 @@ namespace EastFive.Sheets
             }
         }
 
+        public static IEnumerable<string[]> ReadRows(this string content, string delimiter = ",")
+        {
+            using (var reader = new StringReader(content))
+            using (var parser = new Microsoft.VisualBasic.FileIO.TextFieldParser(reader)
+            {
+                TextFieldType = Microsoft.VisualBasic.FileIO.FieldType.Delimited,
+                Delimiters = new[] { delimiter }
+            })
+            {
+                while (!parser.EndOfData)
+                {
+                    string[] fields;
+                    try
+                    {
+                        fields = parser.ReadFields();
+                    }
+                    catch (Exception)
+                    {
+                        continue;
+                    }
+                    yield return fields;
+                }
+            }
+        }
+
         public static TResult GetLegend<TInput,TEnum,TResult>(this TInput[] fields, Dictionary<string, TEnum> map, 
             Func<TInput, string> getFieldText,
             Func<Dictionary<TEnum, int>,TResult> onParsed)
