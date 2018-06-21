@@ -77,11 +77,11 @@ namespace EastFive.Sheets
         }
 
         public static TResult Read<TResult>(Stream stream,
-            Func<IUnderstandSheets, TResult> p)
+            Func<IUnderstandSheets, TResult> onRead)
         {
             using (var workbook = new OpenXmlWorkbook(stream))
             {
-                return p(workbook);
+                return onRead(workbook);
             }
         }
 
