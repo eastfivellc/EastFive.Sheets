@@ -34,7 +34,7 @@ namespace EastFive.Sheets
                     {
                         fields = parser.ReadFields();
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         continue;
                     }
