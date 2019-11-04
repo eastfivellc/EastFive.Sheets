@@ -74,8 +74,8 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\BlackBarLabs.Core\EastFive.Core.csproj">
-      <Project>{AEC927EF-6AAE-4533-BBF6-539643684002}</Project>
+    <ProjectReference Include="..\EastFive.Core\EastFive.Core.csproj">
+      <Project>{aec927ef-6aae-4533-bbf6-539643684002}</Project>
       <Name>EastFive.Core</Name>
     </ProjectReference>
   </ItemGroup>
