@@ -56,7 +56,7 @@ namespace EastFive.Sheets
             //The properties must be public and must have a getter and setter
 
             using (var textWriter = File.CreateText(fileName))
-            using (var writer = new CsvWriter(textWriter))
+            using (var writer = new CsvWriter(textWriter, System.Globalization.CultureInfo.InvariantCulture))
             {
                 writer.WriteRecords(rows);
             }
@@ -73,7 +73,7 @@ namespace EastFive.Sheets
             //}
             //The properties must be public and must have a getter and setter
             using (var streamWriter = new StreamWriter(stream, Encoding.UTF8, 4096, leaveOpen))
-            using (var writer = new CsvWriter(streamWriter))
+            using (var writer = new CsvWriter(streamWriter, System.Globalization.CultureInfo.InvariantCulture))
             {
                 writer.WriteRecords(rows);
             }

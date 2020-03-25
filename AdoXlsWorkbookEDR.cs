@@ -20,20 +20,20 @@ namespace EastFive.Sheets
             this.data = data;
         }
 
-        public static AdoXlsWorkbookEDR Load(byte [] xlsFile)
-        {
-            using (MemoryStream stream = new MemoryStream(xlsFile))
-            {
-                // Auto-detect format, supports:
-                //  - Binary Excel files (2.0-2003 format; *.xls)
-                //  - OpenXml Excel files (2007 format; *.xlsx)
-                using (var reader = ExcelReaderFactory.CreateReader(stream))
-                {
-                    var data = reader.AsDataSet();
-                    return new AdoXlsWorkbookEDR(data);
-                }
-            }
-        }
+        //public static AdoXlsWorkbookEDR Load(byte [] xlsFile)
+        //{
+        //    using (MemoryStream stream = new MemoryStream(xlsFile))
+        //    {
+        //        // Auto-detect format, supports:
+        //        //  - Binary Excel files (2.0-2003 format; *.xls)
+        //        //  - OpenXml Excel files (2007 format; *.xlsx)
+        //        using (var reader = ExcelReaderFactory.CreateReader(stream))
+        //        {
+        //            var data = reader.AsDataSet();
+        //            return new AdoXlsWorkbookEDR(data);
+        //        }
+        //    }
+        //}
 
         public void Dispose()
         {
