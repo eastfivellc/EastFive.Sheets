@@ -72,7 +72,7 @@ namespace EastFive.Sheets
             //    public string Thing1 { get; set; }S
             //}
             //The properties must be public and must have a getter and setter
-            using (var streamWriter = new StreamWriter(stream, Encoding.UTF8, 4096, leaveOpen))
+            using (var streamWriter = new StreamWriter(stream, new UTF8Encoding(false), 4096, leaveOpen))
             using (var writer = new CsvWriter(streamWriter, System.Globalization.CultureInfo.InvariantCulture))
             {
                 writer.WriteRecords(rows);
