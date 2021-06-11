@@ -7,7 +7,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml;
 using System.Text.RegularExpressions;
-using BlackBarLabs.Extensions;
+
 using EastFive.Collections.Generic;
 using EastFive.Linq;
 using EastFive.Extensions;
