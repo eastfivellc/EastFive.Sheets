@@ -1,17 +1,18 @@
-﻿using BlackBarLabs.Extensions;
-using EastFive.Linq;
-using BlackBarLabs.Linq;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.CustomProperties;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
-using DocumentFormat.OpenXml.VariantTypes;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.CustomProperties;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.VariantTypes;
+
+using EastFive;
+using EastFive.Linq;
 using EastFive.Extensions;
 
 namespace EastFive.Sheets
@@ -116,15 +117,18 @@ namespace EastFive.Sheets
             return workbook
                 .GetPartsOfType<WorkbookPart>()
                 .SelectMany(
-                    (workbookPart) => workbookPart.Workbook
-                        .Descendants<Sheet>()
-                        .Select(
-                            (worksheet) =>
-                            {
-                                var wsPart = (WorksheetPart)(workbookPart.GetPartById(worksheet.Id));
-                                var worksheetData = wsPart.Worksheet;
-                                return new OpenXmlSheet(workbook, workbookPart, worksheet, worksheetData);
-                            }))
+                    (workbookPart) =>
+                    {
+                        return workbookPart.Workbook
+                            .Descendants<Sheet>()
+                            .Select(
+                                (worksheet) =>
+                                {
+                                    var wsPart = (WorksheetPart)(workbookPart.GetPartById(worksheet.Id));
+                                    var worksheetData = wsPart.Worksheet;
+                                    return new OpenXmlSheet(workbook, workbookPart, worksheet, worksheetData);
+                                });
+                    })
                 .Select(openXmlSheet => (ISheet)openXmlSheet);
         }
         
@@ -151,9 +155,7 @@ namespace EastFive.Sheets
 
         public void Dispose()
         {
-            
-
-            this.workbook.Close();
+            // this.workbook.Close();
             this.workbook.Dispose();
         }
 

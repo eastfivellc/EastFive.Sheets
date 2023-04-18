@@ -54,12 +54,15 @@ namespace EastFive.Sheets
 
         public IEnumerable<string[]> ReadRows()
         {
-            var sharedStringsParts = workbookPart.GetPartsOfType<SharedStringTablePart>();
+            var sharedStringsParts = workbookPart.GetPartsOfType<SharedStringTablePart>().ToArray();
             var sharedStrings = (sharedStringsParts.Count() > 0) ?
                 sharedStringsParts.First().SharedStringTable
                     .Elements<SharedStringItem>()
                     .Select(
-                        (item) => item.InnerText)
+                        (item) =>
+                        {
+                            return item.InnerText;
+                        })
                     .ToArray()
                 :
                 new string[] { };
@@ -68,26 +71,56 @@ namespace EastFive.Sheets
                 .Descendants<Row>()
                 .ToArray();
 
-            var allColumnIndexes = rowsFromWorksheet
+            //var allColumnIndexes = rowsFromWorksheet
+            //    .SelectMany(
+            //        row =>
+            //        {
+            //            if(!row.Spans.IsDefaultOrNull())
+            //                return row.Spans.Items.SelectMany(rowSpan => Extract(rowSpan)).Append(row.Elements<Cell>().Count());
+            //            if (!row.ChildElements.IsDefaultOrNull())
+            //                return row.ChildElements.Count().AsEnumerable().Append(1);
+            //            return new int[] { };
+            //        })
+            //    .ToArray();
+            //var startIndex = allColumnIndexes.Min();
+            //var lastIndex = allColumnIndexes.Max();
+            //var columnIndexes = Enumerable.Range(startIndex, (lastIndex - startIndex) + 1);
+
+            var allColumnNames = rowsFromWorksheet
                 .SelectMany(
                     row =>
                     {
-                        if(!row.Spans.IsDefaultOrNull())
-                            return row.Spans.Items.SelectMany(rowSpan => Extract(rowSpan)).Append(row.Elements<Cell>().Count());
-                        if (!row.ChildElements.IsDefaultOrNull())
-                            return row.ChildElements.Count().AsEnumerable().Append(1);
-                        return new int[] { };
+                        var cellOptions = row.Elements<Cell>()
+                            .Select(cell => new String(cell.CellReference.Value.Where(c => c >= 'A' && c <= 'z').ToArray()))
+                            .ToArray();
+                        return cellOptions;
+                    })
+                .Distinct()
+                .OrderBy(
+                    str =>
+                    {
+                        var total = str
+                            .Reverse()
+                            .Select((c, i) => (c, (int)Math.Pow(100, i)))
+                            .Aggregate(0,
+                                (penalty, tpl) =>
+                                {
+                                    var (c, index) = tpl;
+                                    var cOffset = c - ('A' - 1);
+                                    return penalty + (index * cOffset);
+                                });
+                        return total;
                     })
                 .ToArray();
-            var startIndex = allColumnIndexes.Min();
-            var lastIndex = allColumnIndexes.Max();
-            var columnIndexes = Enumerable.Range(startIndex, (lastIndex - startIndex) + 1);
 
             var rows = rowsFromWorksheet
                 .Select(row =>
                 {
-                    var columns = columnIndexes
-                        .Select(colIndex => $"{(char)('A' + (colIndex - 1))}{row.RowIndex.ToString()}")
+                    //var columns = columnIndexes
+                    //    .Select(colIndex => $"{(char)('A' + (colIndex - 1))}{row.RowIndex.ToString()}")
+                    //    .ToArray();
+                    var columns = allColumnNames
+                        .Select(cn => $"{cn}{row.RowIndex}")
                         .ToArray();
                     var elements = row.Elements<Cell>().ToArray();
                     if (columns.Length > 0 && columns.Length != elements.Length)
@@ -104,44 +137,61 @@ namespace EastFive.Sheets
                     }
 
                     return elements
-                        .Select(
-                            (cell) =>
-                            {
-                                if (cell.IsDefaultOrNull() || cell.CellValue.IsDefaultOrNull())
-                                    return string.Empty;
-                                
-                                if (!cell.HasAttributes)
-                                    return cell.CellValue.Text;
-
-                                try
-                                {
-                                    foreach (var attribute in cell.GetAttributes())
-                                    {
-                                        if (string.Compare(attribute.LocalName, "t", true) != 0)
-                                            continue;
-                                        var typeAttr = attribute;
-                                        if (typeAttr.Value == "s") // Is int
-                                        {
-                                            int sharedStringIndex;
-                                            if (int.TryParse(cell.CellValue.Text, out sharedStringIndex))
-                                                if (sharedStringIndex < sharedStrings.Length)
-                                                    return sharedStrings[sharedStringIndex];
-                                        }
-                                        if (typeAttr.Value == "str")
-                                        {
-                                            return cell.CellValue.Text;
-                                        }
-                                        continue;
-                                    }
-                                    return cell.CellValue.Text;
-                                }
-                                catch (Exception ex)
-                                {
-                                    var type = ex.GetType();
-                                    return cell.CellValue.Text;
-                                }
-                            })
+                        .Select(ConvertCell)
                         .ToArray();
+
+                    string ConvertCell(Cell cell)
+                    {
+                        if (cell.IsDefaultOrNull() || cell.CellValue.IsDefaultOrNull())
+                            return string.Empty;
+
+                        if (!cell.HasAttributes)
+                            return cell.CellValue.Text;
+
+                        try
+                        {
+                            foreach (var attribute in cell.GetAttributes())
+                            {
+                                if (string.Equals(attribute.LocalName, "t", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    var typeAttr = attribute;
+                                    if (typeAttr.Value == "s") // Is int
+                                    {
+                                        int sharedStringIndex;
+                                        if (int.TryParse(cell.CellValue.Text, out sharedStringIndex))
+                                            if (sharedStringIndex < sharedStrings.Length)
+                                                return sharedStrings[sharedStringIndex];
+                                    }
+                                    if (typeAttr.Value == "str")
+                                    {
+                                        return cell.CellValue.Text;
+                                    }
+                                }
+                                if(string.Equals(attribute.LocalName, "s", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    if (attribute.Value == "1") // Is date
+                                    {
+                                        if (double.TryParse(cell.CellValue.Text, out var oaDate))
+                                        {
+                                            var date = DateTime.FromOADate(oaDate);
+                                            if (date.Hour == 0)
+                                                if (date.Minute == 0)
+                                                    if (date.Second == 0)
+                                                        return date.ToShortDateString();
+                                            return date.ToString("yyyy/MM/dd HH:mm:ss");
+                                        }
+                                    }
+                                }
+                                continue;
+                            }
+                            return cell.CellValue.Text;
+                        }
+                        catch (Exception ex)
+                        {
+                            var type = ex.GetType();
+                            return cell.CellValue.Text;
+                        }
+                    }
                 })
                 .ToArray();
             return rows;

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace EastFive.Sheets
 {
+    [WorkbookApi]
     public interface IUnderstandSheets : IDisposable
     {
         TResult ReadCustomValues<TResult>(Func<KeyValuePair<string, string>[], TResult> onResults);
