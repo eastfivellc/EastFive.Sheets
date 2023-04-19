@@ -67,6 +67,57 @@ namespace EastFive.Sheets
                 :
                 new string[] { };
 
+            
+            var styles = workbookPart
+                .GetPartsOfType<WorkbookStylesPart>()
+                .First(
+                    (sytlePart, next) =>
+                    {
+                        var stylesLookup = sytlePart.Stylesheet.NumberingFormats
+                            .NullToEmpty()
+                            .Select(
+                                (nf, index) =>
+                                {
+                                    var numberingFormat = (NumberingFormat)nf;
+                                    return numberingFormat.NumberFormatId.PairWithValue(numberingFormat.FormatCode);
+                                })
+                            .ToDictionary();
+
+                        var testTime = new DateTime(1, 2, 3, 4, 5, 6);
+
+                        return sytlePart.Stylesheet.CellFormats
+                            .Select(
+                                cf =>
+                                {
+                                    var cellFormat = (CellFormat)cf;
+                                    StringValue numberFormat;
+                                    if (!stylesLookup.TryGetValue(cellFormat.NumberFormatId, out numberFormat))
+                                        return (cellFormat, default(string), false);
+
+                                    return (cellFormat, numberFormat.Value, IsUsable());
+
+                                    bool IsUsable()
+                                    {
+                                        var testOutput = testTime.ToString(numberFormat);
+                                        if (!DateTime.TryParseExact(testOutput, numberFormat,
+                                            System.Globalization.CultureInfo.InvariantCulture,
+                                            System.Globalization.DateTimeStyles.None, out DateTime crossCheck))
+                                        {
+                                            return false;
+                                        }
+
+                                        var isUsable = testTime == crossCheck;
+                                        return isUsable;
+                                    }
+
+                                })
+                            .ToArray();
+                    },
+                    () =>
+                    {
+                        return new (CellFormat, string, bool) [] { };
+                    });
+
             var rowsFromWorksheet = worksheetData
                 .Descendants<Row>()
                 .ToArray();
@@ -145,44 +196,66 @@ namespace EastFive.Sheets
                         if (cell.IsDefaultOrNull() || cell.CellValue.IsDefaultOrNull())
                             return string.Empty;
 
-                        if (!cell.HasAttributes)
-                            return cell.CellValue.Text;
-
                         try
                         {
-                            foreach (var attribute in cell.GetAttributes())
+                            if (cell.StyleIndex.IsNotDefaultOrNull())
                             {
-                                if (string.Equals(attribute.LocalName, "t", StringComparison.OrdinalIgnoreCase))
+                                if (cell.StyleIndex.HasValue)
                                 {
-                                    var typeAttr = attribute;
-                                    if (typeAttr.Value == "s") // Is int
+                                    var index = cell.StyleIndex.Value;
+                                    if (index < styles.Length)
+                                    {
+                                        var (cf, styleText, shouldUse) = styles[index];
+                                        if (IsStyled())
+                                        {
+                                            if (double.TryParse(cell.CellValue.Text, out var oaDate))
+                                            {
+                                                var date = DateTime.FromOADate(oaDate);
+                                                if (shouldUse)
+                                                    return date.ToString(styleText);
+
+                                                if (date.Hour == 0)
+                                                    if (date.Minute == 0)
+                                                        if (date.Second == 0)
+                                                            return date.ToShortDateString();
+                                                return date.ToString("yyyy/MM/dd HH:mm:ss");
+                                            }
+                                        }
+
+                                        bool IsStyled()
+                                        {
+                                            if (styleText.HasBlackSpace())
+                                                return true;
+
+                                            if (cf.ApplyNumberFormat.IsDefaultOrNull())
+                                                return false;
+                                            if (cf.ApplyNumberFormat.HasValue)
+                                                if (cf.ApplyNumberFormat.Value)
+                                                    return true;
+
+                                            return false;
+                                        }
+                                    }
+                                }
+                            }
+
+                            if(cell.DataType.IsNotDefaultOrNull())
+                            {
+                                if(cell.DataType.HasValue)
+                                {
+                                    var dataType = cell.DataType.InnerText;
+                                    if (String.Equals(dataType, "s", StringComparison.OrdinalIgnoreCase)) // Is int
                                     {
                                         int sharedStringIndex;
                                         if (int.TryParse(cell.CellValue.Text, out sharedStringIndex))
                                             if (sharedStringIndex < sharedStrings.Length)
                                                 return sharedStrings[sharedStringIndex];
                                     }
-                                    if (typeAttr.Value == "str")
+                                    if (String.Equals(dataType, "str", StringComparison.OrdinalIgnoreCase)) // Is string
                                     {
                                         return cell.CellValue.Text;
                                     }
                                 }
-                                if(string.Equals(attribute.LocalName, "s", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    if (attribute.Value == "1") // Is date
-                                    {
-                                        if (double.TryParse(cell.CellValue.Text, out var oaDate))
-                                        {
-                                            var date = DateTime.FromOADate(oaDate);
-                                            if (date.Hour == 0)
-                                                if (date.Minute == 0)
-                                                    if (date.Second == 0)
-                                                        return date.ToShortDateString();
-                                            return date.ToString("yyyy/MM/dd HH:mm:ss");
-                                        }
-                                    }
-                                }
-                                continue;
                             }
                             return cell.CellValue.Text;
                         }
@@ -191,6 +264,41 @@ namespace EastFive.Sheets
                             var type = ex.GetType();
                             return cell.CellValue.Text;
                         }
+
+                        //foreach (var attribute in cell.GetAttributes())
+                        //    {
+                        //        if (string.Equals(attribute.LocalName, "t", StringComparison.OrdinalIgnoreCase))
+                        //        {
+                        //            var typeAttr = attribute;
+                        //            if (typeAttr.Value == "s") // Is int
+                        //            {
+                        //                int sharedStringIndex;
+                        //                if (int.TryParse(cell.CellValue.Text, out sharedStringIndex))
+                        //                    if (sharedStringIndex < sharedStrings.Length)
+                        //                        return sharedStrings[sharedStringIndex];
+                        //            }
+                        //            if (typeAttr.Value == "str")
+                        //            {
+                        //                return cell.CellValue.Text;
+                        //            }
+                        //        }
+                        //        if(string.Equals(attribute.LocalName, "s", StringComparison.OrdinalIgnoreCase))
+                        //        {
+                        //            if (attribute.Value == "1") // Is date
+                        //            {
+                        //                if (double.TryParse(cell.CellValue.Text, out var oaDate))
+                        //                {
+                        //                    var date = DateTime.FromOADate(oaDate);
+                        //                    if (date.Hour == 0)
+                        //                        if (date.Minute == 0)
+                        //                            if (date.Second == 0)
+                        //                                return date.ToShortDateString();
+                        //                    return date.ToString("yyyy/MM/dd HH:mm:ss");
+                        //                }
+                        //            }
+                        //        }
+                        //        continue;
+                        //    }
                     }
                 })
                 .ToArray();
