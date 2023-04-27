@@ -11,6 +11,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.WebApiCompatShim" Version="2.2.0" />
     <PackageReference Include="System.Data.OleDb" Version="4.7.0" />
     <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
+    <PackageReference Include="ClosedXML" Version="0.101.0" />
   </ItemGroup>
 
   <ItemGroup>
