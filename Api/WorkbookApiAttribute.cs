@@ -21,7 +21,9 @@ namespace EastFive.Sheets
             return onBound(sheetUnderstander);
         }
 
-        public TResult ProvideValue<TResult>(IFormFile valueToBind, Func<object, TResult> onBound, Func<string, TResult> onFailure)
+        public TResult ProvideValue<TResult>(IFormFile valueToBind,
+            Func<object, TResult> onBound,
+            Func<string, TResult> onFailure)
         {
             var stream = valueToBind.OpenReadStream();
             var workbook = new OpenXmlWorkbook(stream);
