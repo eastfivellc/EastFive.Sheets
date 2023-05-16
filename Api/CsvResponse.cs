@@ -85,7 +85,9 @@ namespace EastFive.Api.Sheets
                 }
                 catch (Exception ex)
                 {
-
+                    var msgBytes = ex.Message.GetBytes(Encoding.UTF8);
+                    await responseStream.WriteAsync(msgBytes, 0, msgBytes.Length,
+                        this.Request.CancellationToken);
                 }
             }
 

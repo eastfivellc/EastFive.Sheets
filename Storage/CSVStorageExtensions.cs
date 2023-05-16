@@ -13,6 +13,7 @@ using EastFive.Azure.Persistence;
 using EastFive.Azure.Persistence.Blobs;
 using Azure.Storage.Blobs.Models;
 using System.Net.Mime;
+using EastFive.Serialization;
 
 namespace EastFive.Sheets.Storage
 {
@@ -44,7 +45,8 @@ namespace EastFive.Sheets.Storage
                     }
                     catch (Exception ex)
                     {
-
+                        var msgBytes = ex.Message.GetBytes(System.Text.Encoding.UTF8);
+                        await blobStream.WriteAsync(msgBytes, 0, msgBytes.Length, default);
                     }
                 },
                 onSuccess:(blobInfo) => blobInfo,

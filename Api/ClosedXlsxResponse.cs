@@ -18,6 +18,7 @@ using EastFive.Collections.Generic;
 using EastFive.Linq;
 using EastFive.Reflection;
 using ClosedXML.Excel;
+using System.Xml.Linq;
 
 namespace EastFive.Api.Sheets
 {
@@ -75,7 +76,9 @@ namespace EastFive.Api.Sheets
                 }
                 catch (Exception ex)
                 {
-
+                    var msgBytes = ex.Message.GetBytes(Encoding.UTF8);
+                    await responseStream.WriteAsync(msgBytes, 0, msgBytes.Length,
+                        this.Request.CancellationToken);
                 }
             }
 
