@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml;
-using System.Text.RegularExpressions;
 
 using EastFive.Collections.Generic;
 using EastFive.Linq;
@@ -29,19 +29,6 @@ namespace EastFive.Sheets
             this.workbook = workbook;
             this.workbookPart = workbookPart;
             this.worksheet = worksheet;
-        }
-
-        private int[] Extract(StringValue sv)
-        {
-            var regex = new Regex("([0-9]+):([0-9]+)");
-            var match = regex.Match(sv.Value);
-            if (!match.Success)
-                return new int[] { };
-            if (match.Groups.Count != 3)
-                return new int[] { };
-            var start = int.Parse(match.Groups[1].Value);
-            var end = int.Parse(match.Groups[2].Value);
-            return Enumerable.Range(start, (end - start)+1).ToArray();
         }
 
         private Cell BuildEmptyCell(string reference)
@@ -141,21 +128,6 @@ namespace EastFive.Sheets
                 .Descendants<Row>()
                 .ToArray();
 
-            //var allColumnIndexes = rowsFromWorksheet
-            //    .SelectMany(
-            //        row =>
-            //        {
-            //            if(!row.Spans.IsDefaultOrNull())
-            //                return row.Spans.Items.SelectMany(rowSpan => Extract(rowSpan)).Append(row.Elements<Cell>().Count());
-            //            if (!row.ChildElements.IsDefaultOrNull())
-            //                return row.ChildElements.Count().AsEnumerable().Append(1);
-            //            return new int[] { };
-            //        })
-            //    .ToArray();
-            //var startIndex = allColumnIndexes.Min();
-            //var lastIndex = allColumnIndexes.Max();
-            //var columnIndexes = Enumerable.Range(startIndex, (lastIndex - startIndex) + 1);
-
             var allColumnNames = rowsFromWorksheet
                 .SelectMany(
                     row =>
@@ -186,9 +158,6 @@ namespace EastFive.Sheets
             var rows = rowsFromWorksheet
                 .Select(row =>
                 {
-                    //var columns = columnIndexes
-                    //    .Select(colIndex => $"{(char)('A' + (colIndex - 1))}{row.RowIndex.ToString()}")
-                    //    .ToArray();
                     var columns = allColumnNames
                         .Select(cn => $"{cn}{row.RowIndex}")
                         .ToArray();
@@ -293,47 +262,13 @@ namespace EastFive.Sheets
                             var type = ex.GetType();
                             return cell.CellValue.Text;
                         }
-
-                        //foreach (var attribute in cell.GetAttributes())
-                        //    {
-                        //        if (string.Equals(attribute.LocalName, "t", StringComparison.OrdinalIgnoreCase))
-                        //        {
-                        //            var typeAttr = attribute;
-                        //            if (typeAttr.Value == "s") // Is int
-                        //            {
-                        //                int sharedStringIndex;
-                        //                if (int.TryParse(cell.CellValue.Text, out sharedStringIndex))
-                        //                    if (sharedStringIndex < sharedStrings.Length)
-                        //                        return sharedStrings[sharedStringIndex];
-                        //            }
-                        //            if (typeAttr.Value == "str")
-                        //            {
-                        //                return cell.CellValue.Text;
-                        //            }
-                        //        }
-                        //        if(string.Equals(attribute.LocalName, "s", StringComparison.OrdinalIgnoreCase))
-                        //        {
-                        //            if (attribute.Value == "1") // Is date
-                        //            {
-                        //                if (double.TryParse(cell.CellValue.Text, out var oaDate))
-                        //                {
-                        //                    var date = DateTime.FromOADate(oaDate);
-                        //                    if (date.Hour == 0)
-                        //                        if (date.Minute == 0)
-                        //                            if (date.Second == 0)
-                        //                                return date.ToShortDateString();
-                        //                    return date.ToString("yyyy/MM/dd HH:mm:ss");
-                        //                }
-                        //            }
-                        //        }
-                        //        continue;
-                        //    }
                     }
                 })
                 .ToArray();
             return rows;
         }
 
+        // https://learn.microsoft.com/en-us/previous-versions/office/developer/office-2010/ee857658(v=office.14)
         private readonly Dictionary<uint, string> DateFormatDictionary = new Dictionary<uint, string>()
         {
             [14] = "dd/MM/yyyy",
