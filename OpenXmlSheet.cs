@@ -90,32 +90,51 @@ namespace EastFive.Sheets
                                 cf =>
                                 {
                                     var cellFormat = (CellFormat)cf;
-                                    StringValue numberFormat;
-                                    if (!stylesLookup.TryGetValue(cellFormat.NumberFormatId, out numberFormat))
-                                        return (cellFormat, default(string), false);
 
-                                    return (cellFormat, numberFormat.Value, IsUsable());
+                                    if(!TryGetDateFormat(out var dateFormatString))
+                                        return (cellFormat, dateFormatString, false, false);
 
-                                    bool IsUsable()
+                                    var (canUseFormatting, isNumber) = IsUsable();
+                                    return (cellFormat, dateFormatString, canUseFormatting, isNumber);
+
+                                    (bool, bool) IsUsable()
                                     {
-                                        var testOutput = testTime.ToString(numberFormat);
-                                        if (!DateTime.TryParseExact(testOutput, numberFormat,
-                                            System.Globalization.CultureInfo.InvariantCulture,
-                                            System.Globalization.DateTimeStyles.None, out DateTime crossCheck))
+                                        string testOutput;
+                                        try
                                         {
-                                            return false;
+                                            testOutput = testTime.ToString(dateFormatString);
+                                        }
+                                        catch (FormatException)
+                                        {
+                                            return (false, false);
+                                        }
+                                        if (!DateTime.TryParseExact(testOutput, dateFormatString,
+                                                System.Globalization.CultureInfo.InvariantCulture,
+                                                System.Globalization.DateTimeStyles.None, out DateTime crossCheck))
+                                        {
+                                            return (false, true);
                                         }
 
-                                        var isUsable = testTime == crossCheck;
-                                        return isUsable;
+                                        var isUsable = testTime.EqualToDay(crossCheck);
+                                        return (isUsable, true);
                                     }
 
+                                    bool TryGetDateFormat(out string dateFormatString)
+                                    {
+                                        if (stylesLookup.TryGetValue(cellFormat.NumberFormatId, out var numberFormat))
+                                        {
+                                            dateFormatString = numberFormat.Value;
+                                            return true;
+                                        }
+
+                                        return DateFormatDictionary.TryGetValue(cellFormat.NumberFormatId, out dateFormatString);
+                                    }
                                 })
                             .ToArray();
                     },
                     () =>
                     {
-                        return new (CellFormat, string, bool) [] { };
+                        return new (CellFormat, string, bool, bool) [] { };
                     });
 
             var rowsFromWorksheet = worksheetData
@@ -205,20 +224,30 @@ namespace EastFive.Sheets
                                     var index = cell.StyleIndex.Value;
                                     if (index < styles.Length)
                                     {
-                                        var (cf, styleText, shouldUse) = styles[index];
-                                        if (IsStyled())
+                                        var (cf, styleText, shouldUse, isDateFormat) = styles[index];
+                                        if (isDateFormat)
                                         {
-                                            if (double.TryParse(cell.CellValue.Text, out var oaDate))
+                                            if (IsStyled())
                                             {
-                                                var date = DateTime.FromOADate(oaDate);
-                                                if (shouldUse)
-                                                    return date.ToString(styleText);
+                                                if (double.TryParse(cell.CellValue.Text, out var oaDate))
+                                                {
+                                                    try
+                                                    {
+                                                        var date = DateTime.FromOADate(oaDate);
+                                                        if (shouldUse)
+                                                            return date.ToString(styleText);
 
-                                                if (date.Hour == 0)
-                                                    if (date.Minute == 0)
-                                                        if (date.Second == 0)
-                                                            return date.ToShortDateString();
-                                                return date.ToString("yyyy/MM/dd HH:mm:ss");
+                                                        if (date.Hour == 0)
+                                                            if (date.Minute == 0)
+                                                                if (date.Second == 0)
+                                                                    return date.ToShortDateString();
+                                                        return date.ToString("yyyy/MM/dd HH:mm:ss");
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        ex.GetType();
+                                                    }
+                                                }
                                             }
                                         }
 
@@ -304,6 +333,53 @@ namespace EastFive.Sheets
                 .ToArray();
             return rows;
         }
+
+        private readonly Dictionary<uint, string> DateFormatDictionary = new Dictionary<uint, string>()
+        {
+            [14] = "dd/MM/yyyy",
+            [15] = "d-MMM-yy",
+            [16] = "d-MMM",
+            [17] = "MMM-yy",
+            [18] = "h:mm AM/PM",
+            [19] = "h:mm:ss AM/PM",
+            [20] = "h:mm",
+            [21] = "h:mm:ss",
+            [22] = "M/d/yy h:mm",
+            [30] = "M/d/yy",
+            [34] = "yyyy-MM-dd",
+            [45] = "mm:ss",
+            [46] = "[h]:mm:ss",
+            [47] = "mmss.0",
+            [51] = "MM-dd",
+            [52] = "yyyy-MM-dd",
+            [53] = "yyyy-MM-dd",
+            [55] = "yyyy-MM-dd",
+            [56] = "yyyy-MM-dd",
+            [58] = "MM-dd",
+            [165] = "M/d/yy",
+            [166] = "dd MMMM yyyy",
+            [167] = "dd/MM/yyyy",
+            [168] = "dd/MM/yy",
+            [169] = "d.M.yy",
+            [170] = "yyyy-MM-dd",
+            [171] = "dd MMMM yyyy",
+            [172] = "d MMMM yyyy",
+            [173] = "M/d",
+            [174] = "M/d/yy",
+            [175] = "MM/dd/yy",
+            [176] = "d-MMM",
+            [177] = "d-MMM-yy",
+            [178] = "dd-MMM-yy",
+            [179] = "MMM-yy",
+            [180] = "MMMM-yy",
+            [181] = "MMMM d, yyyy",
+            [182] = "M/d/yy hh:mm t",
+            [183] = "M/d/y HH:mm",
+            [184] = "MMM",
+            [185] = "MMM-dd",
+            [186] = "M/d/yyyy",
+            [187] = "d-MMM-yyyy"
+        };
 
         public void WriteRows(string fileName, object[] rows)
         {
