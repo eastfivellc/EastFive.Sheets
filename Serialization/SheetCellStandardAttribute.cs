@@ -6,6 +6,13 @@ using EastFive.Reflection;
 using System.Linq;
 using DocumentFormat.OpenXml.Spreadsheet;
 using EastFive.Linq;
+using System.Collections.Generic;
+using System.Collections;
+using System.Text;
+using EastFive.Extensions;
+using DocumentFormat.OpenXml.Bibliography;
+using static EastFive.AzureADB2C.Resources.ODataError.Error;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace EastFive.Sheets
 {
@@ -47,28 +54,57 @@ namespace EastFive.Sheets
             if (typeof(IReferenceableOptional).IsAssignableFrom(memberType))
             {
                 var irefOptValue = (IReferenceableOptional)value;
-
                 if (headerData.HasLink)
                     WriteRefLink(worksheet, cell, headerData, true);
 
                 if (irefOptValue.HasValue)
                 {
-                    value = irefOptValue.id.Value.ToString();
-                    var cellValueValue = XLCellValue.FromObject(value);
+                    var refValueString = irefOptValue.id.Value.ToString();
+                    var cellValueValue = XLCellValue.FromObject(refValueString);
                     return cell.SetValue(cellValueValue);
                 }
 
                 var blankValue = Blank.Value;
+                if (headerData.HasLink)
+                {
+                    var cellLink = cell.CellRight();
+                    cellLink.SetValue(blankValue);
+                }
                 return cell.SetValue(blankValue);
             }
 
             if (typeof(IReferenceable).IsAssignableFrom(memberType))
             {
-                var irefValue = (IReferenceable)value;
-                value = irefValue.id.ToString();
-                if (headerData.HasLink)
+                if (value == null)
                 {
-                    WriteRefLink(worksheet, cell, headerData, false);
+                    return cell.SetValue(Blank.Value);
+                }
+                else
+                {
+                    var irefValue = (IReferenceable)value;
+                    value = irefValue.id.ToString();
+                    if (headerData.HasLink)
+                    {
+                        WriteRefLink(worksheet, cell, headerData, false);
+                    }
+                }
+            }
+
+            if (memberType.IsSubClassOfGeneric(typeof(IDictionary<,>)))
+            {
+                if (value == null)
+                {
+                    var cellValueValue = XLCellValue.FromObject(null);
+                    return cell.SetValue(cellValueValue);
+                }
+                else
+                {
+                    var stringValue = value
+                        .DictionaryKeyValuePairs()
+                        .Select(kvp => $"{kvp.Key}:{kvp.Value}")
+                        .Join("\n");
+                    var cellValueValue = XLCellValue.FromObject(stringValue);
+                    return cell.SetValue(cellValueValue);
                 }
             }
 
@@ -79,6 +115,7 @@ namespace EastFive.Sheets
 
         private IXLCell WriteRefLink(IXLWorksheet worksheet, IXLCell sourceCell, HeaderData headerData, bool optional)
         {
+            optional = false;
             var sourceColumn = sourceCell.WorksheetColumn();
             var matchValueColNumber = sourceColumn.ColumnNumber();
             var matchValueColLetter = sourceColumn.ColumnLetter();
