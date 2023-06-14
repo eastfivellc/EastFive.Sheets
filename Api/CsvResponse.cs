@@ -68,20 +68,7 @@ namespace EastFive.Api.Sheets
             {
                 try
                 {
-                    using (TextWriter writer = new StreamWriter(responseStream, System.Text.Encoding.UTF8))
-                    {
-                        using (var csv = new CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture))
-                        {
-                            foreach (var row in values.Take(2000))
-                            {
-                                foreach(var col in row)
-                                    csv.WriteConvertedField(col); // where values implements IEnumerable
-                                await csv.NextRecordAsync();
-                                await writer.FlushAsync();
-                                await responseStream.FlushAsync();
-                            }
-                        }
-                    }
+                    await responseStream.WriteCSVAsync(values);
                 }
                 catch (Exception ex)
                 {

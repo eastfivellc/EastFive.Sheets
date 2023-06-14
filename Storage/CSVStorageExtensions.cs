@@ -28,20 +28,7 @@ namespace EastFive.Sheets.Storage
                 {
                     try
                     {
-                        using (TextWriter writer = new StreamWriter(blobStream, System.Text.Encoding.UTF8, leaveOpen:true))
-                        {
-                            using (var csv = new CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture, leaveOpen:true))
-                            {
-                                foreach (var row in csvData)
-                                {
-                                    foreach (var col in row)
-                                        csv.WriteConvertedField(col); // where values implements IEnumerable
-                                    await csv.NextRecordAsync();
-                                    await writer.FlushAsync();
-                                    await blobStream.FlushAsync();
-                                }
-                            }
-                        }
+                        await blobStream.WriteCSVAsync(csvData, leaveOpen: true);
                     }
                     catch (Exception ex)
                     {
