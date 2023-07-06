@@ -12,6 +12,7 @@ namespace EastFive.Sheets.Api
 		public IHeaderDictionary headers;
 		public long length;
 		public IUnderstandSheets workbook;
+		public byte[] raw;
     }
 }
 

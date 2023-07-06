@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Mime;
 using System.Reflection;
@@ -7,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using EastFive.Api;
+using EllipticCurve.Utils;
 using Microsoft.AspNetCore.Http;
 
 namespace EastFive.Sheets.Api
@@ -16,19 +18,22 @@ namespace EastFive.Sheets.Api
     {
         public TResult ProvideValue<TResult>(MultipartContentTokenParser valueToBind, Func<object, TResult> onBound, Func<string, TResult> onFailure)
         {
-            var stream = valueToBind.ReadStream();
+            var raw = valueToBind.ReadStream().ToBytes();
+            var stream = new MemoryStream(raw);
             var workbook = new OpenXmlWorkbook(stream);
             var sheetUnderstander = (IUnderstandSheets)workbook;
             var info = new WorkbookFileInfo
             {
                 workbook = sheetUnderstander,
+                raw = raw,
             };
             return onBound(info);
         }
 
         public TResult ProvideValue<TResult>(IFormFile valueToBind, Func<object, TResult> onBound, Func<string, TResult> onFailure)
         {
-            var stream = valueToBind.OpenReadStream().ToCachedStream();
+            var raw = valueToBind.OpenReadStream().ToBytes();
+            var stream = new MemoryStream(raw);
             var workbook = new OpenXmlWorkbook(stream);
             var sheetUnderstander = (IUnderstandSheets)workbook;
             var info = new WorkbookFileInfo
@@ -38,6 +43,7 @@ namespace EastFive.Sheets.Api
                 headers = valueToBind.Headers,
                 length = valueToBind.Length,
                 workbook = sheetUnderstander,
+                raw = raw,
             };
             return onBound(info);
         }
