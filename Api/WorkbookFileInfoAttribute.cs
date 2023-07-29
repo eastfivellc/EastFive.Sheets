@@ -60,20 +60,26 @@ namespace EastFive.Sheets.Api
                 Func< IUnderstandSheets, TResult> onBound,
                 Func<string, TResult> onFailure)
             {
+                var stream = new MemoryStream(raw);
                 if (valueToBind.ContentType.Contains("csv", StringComparison.OrdinalIgnoreCase))
                 {
-                    var stream = new MemoryStream(raw);
-                    var workbook = new CsvWorkbook(stream);
-                    var sheetUnderstander = (IUnderstandSheets)workbook;
+                    var sheetUnderstander = LoadCsv();
                     return onBound(sheetUnderstander);
                 }
 
                 if (IsXlsx())
                 {
-                    var stream = new MemoryStream(raw);
-                    var workbook = new OpenXmlWorkbook(stream);
-                    var sheetUnderstander = (IUnderstandSheets)workbook;
-                    return onBound(sheetUnderstander);
+                    return OpenXmlWorkbook.Load(stream,
+                        workbook =>
+                        {
+                            var sheetUnderstander = (IUnderstandSheets)workbook;
+                            return onBound(sheetUnderstander);
+                        },
+                        onInvalidFile:() =>
+                        {
+                            var sheetUnderstander = LoadCsv();
+                            return onBound(sheetUnderstander);
+                        });
                 }
 
                 return onFailure($"Could not process file of type:`{valueToBind.ContentType}`");
@@ -93,8 +99,15 @@ namespace EastFive.Sheets.Api
                         if (contentType.Contains("sheet", StringComparison.OrdinalIgnoreCase))
                             return true;
 
-
                     return false;
+                }
+
+                IUnderstandSheets LoadCsv()
+                {
+                    stream.Seek(0, SeekOrigin.Begin);
+                    var workbook = new CsvWorkbook(stream);
+                    var sheetUnderstander = (IUnderstandSheets)workbook;
+                    return sheetUnderstander;
                 }
             }
         }

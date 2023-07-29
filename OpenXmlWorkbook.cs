@@ -27,10 +27,26 @@ namespace EastFive.Sheets
         {
             workbook = SpreadsheetDocument.Open(stream, false);
         }
-
+           
         private OpenXmlWorkbook(SpreadsheetDocument workbook)
         {
             this.workbook = workbook;
+        }
+
+        public static TResult Load<TResult>(Stream stream,
+            Func<OpenXmlWorkbook, TResult> onSuccess,
+            Func<TResult> onInvalidFile,
+                bool isEditable = false)
+        {
+            try
+            {
+                var sheetDoc = SpreadsheetDocument.Open(stream, isEditable);
+                var workbook = new OpenXmlWorkbook(sheetDoc);
+                return onSuccess(workbook);
+            } catch(FileFormatException)
+            {
+                return onInvalidFile();
+            }
         }
 
         public static TResult Create<TResult>(System.IO.Stream stream,
