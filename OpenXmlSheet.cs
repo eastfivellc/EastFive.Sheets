@@ -198,7 +198,8 @@ namespace EastFive.Sheets
                                         {
                                             if (IsStyled())
                                             {
-                                                if (double.TryParse(cell.CellValue.Text, out var oaDate))
+                                                var cellValueText = GetCellValue();
+                                                if (double.TryParse(cellValueText, out var oaDate))
                                                 {
                                                     try
                                                     {
@@ -215,6 +216,7 @@ namespace EastFive.Sheets
                                                     catch (Exception ex)
                                                     {
                                                         ex.GetType();
+                                                        return cellValueText;
                                                     }
                                                 }
                                             }
@@ -237,25 +239,30 @@ namespace EastFive.Sheets
                                 }
                             }
 
-                            if(cell.DataType.IsNotDefaultOrNull())
+                            return GetCellValue();
+
+                            string GetCellValue()
                             {
-                                if(cell.DataType.HasValue)
+                                if (cell.DataType.IsNotDefaultOrNull())
                                 {
-                                    var dataType = cell.DataType.InnerText;
-                                    if (String.Equals(dataType, "s", StringComparison.OrdinalIgnoreCase)) // Is int
+                                    if (cell.DataType.HasValue)
                                     {
-                                        int sharedStringIndex;
-                                        if (int.TryParse(cell.CellValue.Text, out sharedStringIndex))
-                                            if (sharedStringIndex < sharedStrings.Length)
-                                                return sharedStrings[sharedStringIndex];
-                                    }
-                                    if (String.Equals(dataType, "str", StringComparison.OrdinalIgnoreCase)) // Is string
-                                    {
-                                        return cell.CellValue.Text;
+                                        var dataType = cell.DataType.InnerText;
+                                        if (String.Equals(dataType, "s", StringComparison.OrdinalIgnoreCase)) // Is int
+                                        {
+                                            int sharedStringIndex;
+                                            if (int.TryParse(cell.CellValue.Text, out sharedStringIndex))
+                                                if (sharedStringIndex < sharedStrings.Length)
+                                                    return sharedStrings[sharedStringIndex];
+                                        }
+                                        if (String.Equals(dataType, "str", StringComparison.OrdinalIgnoreCase)) // Is string
+                                        {
+                                            return cell.CellValue.Text;
+                                        }
                                     }
                                 }
+                                return cell.CellValue.Text;
                             }
-                            return cell.CellValue.Text;
                         }
                         catch (Exception ex)
                         {
