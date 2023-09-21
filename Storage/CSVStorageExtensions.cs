@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Mime;
 using System.Threading.Tasks;
+
+using Azure.Storage.Blobs.Models;
+
 using CsvHelper;
 
 using EastFive.Persistence;
@@ -11,8 +15,6 @@ using EastFive.Azure.Persistence.AzureStorageTables;
 using EastFive.Azure.StorageTables;
 using EastFive.Azure.Persistence;
 using EastFive.Azure.Persistence.Blobs;
-using Azure.Storage.Blobs.Models;
-using System.Net.Mime;
 using EastFive.Serialization;
 
 namespace EastFive.Sheets.Storage
