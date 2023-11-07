@@ -20,7 +20,7 @@ namespace EastFive.Sheets
 
         public string Name => sheetName;
 
-        public IEnumerable<string[]> ReadRows()
+        public IEnumerable<string[]> ReadRows(Func<Type, object, Func<string>, string> serializer = default)
         {
             using (var cmd = conn.CreateCommand())
             {

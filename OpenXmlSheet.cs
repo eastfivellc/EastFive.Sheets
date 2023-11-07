@@ -39,7 +39,7 @@ namespace EastFive.Sheets
             return cell;
         }
 
-        public IEnumerable<string[]> ReadRows()
+        public IEnumerable<string[]> ReadRows(Func<Type, object, Func<string>, string> serializer = default)
         {
             var sharedStringsParts = workbookPart.GetPartsOfType<SharedStringTablePart>().ToArray();
             var sharedStrings = (sharedStringsParts.Count() > 0) ?
@@ -204,14 +204,25 @@ namespace EastFive.Sheets
                                                     try
                                                     {
                                                         var date = DateTime.FromOADate(oaDate);
-                                                        if (shouldUse)
-                                                            return date.ToString(styleText);
+                                                        if (serializer.IsNotDefaultOrNull())
+                                                            return serializer(typeof(DateTime), date,
+                                                                () =>
+                                                                {
+                                                                    return GetDTValue();
+                                                                });
 
-                                                        if (date.Hour == 0)
-                                                            if (date.Minute == 0)
-                                                                if (date.Second == 0)
-                                                                    return date.ToShortDateString();
-                                                        return date.ToString("yyyy/MM/dd HH:mm:ss");
+                                                        return GetDTValue();
+                                                        string GetDTValue()
+                                                        {
+                                                            if (shouldUse)
+                                                                return date.ToString(styleText);
+
+                                                            if (date.Hour == 0)
+                                                                if (date.Minute == 0)
+                                                                    if (date.Second == 0)
+                                                                        return date.ToShortDateString();
+                                                            return date.ToString("yyyy/MM/dd HH:mm:ss");
+                                                        }
                                                     }
                                                     catch (Exception ex)
                                                     {

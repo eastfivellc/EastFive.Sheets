@@ -72,7 +72,7 @@ namespace EastFive.Sheets.Api
 
             public string Name => ws.Name;
 
-            public IEnumerable<string[]> ReadRows()
+            public IEnumerable<string[]> ReadRows(Func<Type, object, Func<string>, string> serializer = default)
             {
                 return ws.Rows()
                     .Select(

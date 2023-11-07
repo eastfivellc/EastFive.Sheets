@@ -19,7 +19,7 @@ namespace EastFive.Sheets
 
         public string Name => "sheet";
 
-        public IEnumerable<string[]> ReadRows()
+        public IEnumerable<string[]> ReadRows(Func<Type, object, Func<string>, string> serializer = default)
         {
             stream.Seek(0, SeekOrigin.Begin);
             List<string[]> rows = new List<string[]>();

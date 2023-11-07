@@ -8,7 +8,7 @@ namespace EastFive.Sheets
 {
     public interface ISheet
     {
-        IEnumerable<string[]> ReadRows();
+        IEnumerable<string[]> ReadRows(Func<Type, object, Func<string>, string> serializer = default);
 
         void WriteRows(string fileName, object[] rows);
 

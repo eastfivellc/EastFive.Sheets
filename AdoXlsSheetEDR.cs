@@ -16,7 +16,7 @@ namespace EastFive.Sheets
 
         public string Name => dataTable.TableName;
 
-        public IEnumerable<string[]> ReadRows()
+        public IEnumerable<string[]> ReadRows(Func<Type, object, Func<string>, string> serializer = default)
         {
             foreach(DataRow row in dataTable.Rows)
             {
