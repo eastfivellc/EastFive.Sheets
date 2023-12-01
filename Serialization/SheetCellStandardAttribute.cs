@@ -299,7 +299,7 @@ namespace EastFive.Sheets
                         {
                             if (cell.Value.IsText)
                             {
-                                if (cell.Value.GetText().TryParseRef(typeToProcess, out var parsedRefObj))
+                                if (cell.Value.GetText().TryParseRef(typeToProcess, out var parsedRefObj, out var didMatch))
                                 {
                                     var updatedResource = (TResource)member
                                         .SetPropertyOrFieldValue(resource, parsedRefObj);

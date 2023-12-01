@@ -2,11 +2,16 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
 using CsvHelper;
+using DocumentFormat.OpenXml.Spreadsheet;
 using EastFive.Linq;
+using EastFive.Reflection;
+using EastFive.Serialization.Text;
 using EastFive.Sheets.Api;
+using Irony.Parsing;
 
 namespace EastFive.Sheets
 {
@@ -46,6 +51,66 @@ namespace EastFive.Sheets
                     return streamToWriteTo;
                 }
             }
+        }
+
+        public static IEnumerable<TResource> ParseRows<TResource>(this IEnumerable<string[]> rows)
+        {
+            var parser = rows.GetEnumerator();
+
+            if (!parser.MoveNext())
+                yield break;
+
+            var headers = parser.Current;
+            var membersAndMappers = GetPropertyMappers<TResource>();
+
+            while (parser.MoveNext())
+            {
+                TResource resource;
+                try
+                {
+                    var fields = parser.Current;
+                    var values = headers.CollateSimple(fields).ToArray();
+
+                    resource = ParseResource(membersAndMappers, values);
+                }
+                catch (Exception ex)
+                {
+                    ex.GetType();
+                    continue;
+                }
+                yield return resource;
+            }
+
+            TResource ParseResource(
+                (MemberInfo, IMapTextProperty)[] membersAndMappers,
+                (string key, string value)[] rowValues)
+            {
+                var resource = Activator.CreateInstance<TResource>();
+                return membersAndMappers
+                    .Aggregate(resource,
+                        (resource, memberAndMapper) =>
+                        {
+                            var (member, mapper) = memberAndMapper;
+                            return mapper.ParseRow(resource, member, rowValues);
+                        });
+            }
+        }
+
+        public static (MemberInfo, IMapTextProperty)[] GetPropertyMappers<TResource>()
+        {
+            return typeof(TResource)
+                .GetPropertyOrFieldMembers()
+                .Select(
+                    member =>
+                    {
+                        var matchingAttrs = member
+                            .GetAttributesInterface<IMapTextProperty>()
+                            .ToArray();
+                        return (member, matchingAttrs);
+                    })
+                .Where(tpl => tpl.matchingAttrs.Any())
+                .Select(tpl => (tpl.member, attr: tpl.matchingAttrs.First()))
+                .ToArray();
         }
     }
 }
