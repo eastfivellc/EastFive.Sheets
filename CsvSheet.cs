@@ -5,9 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using CsvHelper;
+
+using EastFive;
+using EastFive.Extensions;
 using EastFive.Linq;
-using static EastFive.Azure.Persistence.AzureStorageTables.Backups.TableBackupOperation;
-using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace EastFive.Sheets
 {
@@ -17,37 +18,53 @@ namespace EastFive.Sheets
 
         public CsvSheet(Stream stream)
         {
-            this.stream = stream;    
+            this.stream = stream;
         }
 
         public string Name => "sheet";
 
-        public IEnumerable<string[]> ReadRows(Func<Type, object, Func<string>, string> serializer = default)
+        public IEnumerable<string[]> ReadRows(
+            Func<Type, object, Func<string>, string> serializer = default) =>
+            ReadRows(serializer, autoDecodeEncoding: false, encodingToUse:default);
+
+        public IEnumerable<string[]> ReadRows(
+            Func<Type, object, Func<string>, string> serializer = default,
+            bool autoDecodeEncoding = false,
+            Encoding encodingToUse = default)
         {
             stream.Seek(0, SeekOrigin.Begin);
             var rawData = stream.ToBytes();
-            var encoding = DecodeEncoding(rawData);
-            List<string[]> rows = new List<string[]>();
-            using (var parser = new Microsoft.VisualBasic.FileIO.TextFieldParser(
-                new MemoryStream(rawData), encoding))
+            var encoding = encodingToUse.IsNotDefaultOrNull()?
+                encodingToUse
+                :
+                autoDecodeEncoding?
+                    DecodeEncoding(rawData)
+                    :
+                    default(Encoding);
+            using (var rawDataStream = new MemoryStream(rawData))
             {
-                parser.TextFieldType = Microsoft.VisualBasic.FileIO.FieldType.Delimited;
-                parser.SetDelimiters(",");
-                while (!parser.EndOfData)
+                using (var parser = encoding.IsNotDefaultOrNull()?
+                    new Microsoft.VisualBasic.FileIO.TextFieldParser(rawDataStream, encoding)
+                    :
+                    new Microsoft.VisualBasic.FileIO.TextFieldParser(rawDataStream))
                 {
-                    string[] fields = new string[0];
-                    try
+                    parser.TextFieldType = Microsoft.VisualBasic.FileIO.FieldType.Delimited;
+                    parser.SetDelimiters(",");
+                    while (!parser.EndOfData)
                     {
-                        fields = parser.ReadFields();
+                        string[] fields = new string[0];
+                        try
+                        {
+                            fields = parser.ReadFields();
+                        }
+                        catch (Exception)
+                        {
+                            continue;
+                        }
+                        yield return fields;
                     }
-                    catch (Exception)
-                    {
-                        continue;
-                    }
-                    rows.Add(fields);
                 }
             }
-            return rows.ToArray();
         }
 
         public Encoding DecodeEncoding(byte[] rawData)
@@ -58,51 +75,66 @@ namespace EastFive.Sheets
                 .Select(
                     encoding =>
                     {
-                        var rowSizes = new List<double>();
-                        bool didThrowException = false;
-                        using (var parser = new Microsoft.VisualBasic.FileIO.TextFieldParser(
-                            new MemoryStream(rawData), encoding))
+                        try
                         {
-                            parser.TextFieldType = Microsoft.VisualBasic.FileIO.FieldType.Delimited;
-                            parser.SetDelimiters(",");
-                            while (!parser.EndOfData)
+                            var rowSizes = new List<double>();
+                            bool didThrowException = false;
+                            using (var rawDatStream = new MemoryStream(rawData))
                             {
-                                string[] fields = new string[0];
-                                try
+                                using (var parser = new Microsoft.VisualBasic.FileIO.TextFieldParser(rawDatStream, encoding))
                                 {
-                                    fields = parser.ReadFields();
+                                    parser.TextFieldType = Microsoft.VisualBasic.FileIO.FieldType.Delimited;
+                                    parser.SetDelimiters(",");
+                                    while (!parser.EndOfData)
+                                    {
+                                        string[] fields = new string[0];
+                                        try
+                                        {
+                                            fields = parser.ReadFields();
+                                        }
+                                        catch (Exception)
+                                        {
+                                            didThrowException = true;
+                                            continue;
+                                        }
+                                        rowSizes.Add(fields.Length);
+                                    }
                                 }
-                                catch (Exception)
-                                {
-                                    didThrowException = true;
-                                    continue;
-                                }
-                                rowSizes.Add(fields.Length);
                             }
-                        }
 
-                        var rowCount = rowSizes.Count;
-                        if (rowCount == 0)
+                            var rowCount = rowSizes.Count;
+                            if (rowCount == 0)
+                                return (
+                                    encoding,
+                                    rowCount,
+                                    rowSizeAvg: 0d,
+                                    stdDev: 0d,
+                                    stdError: 0d,
+                                    totalCells: 0,
+                                    true);
+
+                            var rowSizeAvg = rowSizes.Average();
+                            var stdDev = rowSizes.StdDev();
+                            var totalCells = rowSizes.Sum();
                             return (
                                 encoding,
                                 rowCount,
-                                rowSizeAvg: 0d,
-                                stdDev: 0d,
-                                stdError: 0d,
-                                totalCells: 0,
-                                true);
-
-                        var rowSizeAvg = rowSizes.Average();
-                        var stdDev = rowSizes.StdDev();
-                        var totalCells = rowSizes.Sum();
-                        return (
-                            encoding,
-                            rowCount,
-                            rowSizeAvg: rowSizeAvg,
-                            stdDev: stdDev,
-                            stdError: stdDev / Math.Sqrt(rowCount),
-                            totalCells: totalCells,
-                            didThrowException);
+                                rowSizeAvg: rowSizeAvg,
+                                stdDev: stdDev,
+                                stdError: stdDev / Math.Sqrt(rowCount),
+                                totalCells: totalCells,
+                                didThrowException);
+                        } catch (Exception)
+                        {
+                            return (
+                                encoding,
+                                    rowCount: 0,
+                                    rowSizeAvg: 0d,
+                                    stdDev: 0d,
+                                    stdError: 0d,
+                                    totalCells: 0,
+                                    didThrowException:true);
+                        }
                     })
                 .Where(ep => ep.rowCount > 0)
                 .Where(ep => ep.rowSizeAvg > 0)
