@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Threading.Tasks;
+using CsvHelper;
 
 namespace EastFive.Sheets
 {
@@ -54,6 +57,12 @@ namespace EastFive.Sheets
                     yield return fields;
                 }
             }
+        }
+
+        public static Task<Stream> WriteRows(this IEnumerable<string[]> rows, string delimiter = ",")
+        {
+            var writtenStream = new MemoryStream();
+            return writtenStream.WriteCSVAsync(rows, leaveOpen:true);
         }
 
         public static TResult GetLegend<TInput,TEnum,TResult>(this TInput[] fields, Dictionary<string, TEnum> map, 
