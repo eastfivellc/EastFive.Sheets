@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 
 using EastFive.Api;
 using DocumentFormat.OpenXml.Spreadsheet;
+using EastFive.Extensions;
 
 namespace EastFive.Sheets.Api
 {
@@ -21,6 +22,9 @@ namespace EastFive.Sheets.Api
             Func<object, TResult> onBound,
             Func<string, TResult> onFailure)
         {
+            if (valueToBind.IsDefaultOrNull())
+                return onFailure("Null value");
+
             var raw = valueToBind.ReadStream().ToBytes();
             var stream = new MemoryStream(raw);
             var workbook = new OpenXmlWorkbook(stream);
@@ -37,6 +41,9 @@ namespace EastFive.Sheets.Api
             Func<object, TResult> onBound,
             Func<string, TResult> onFailure)
         {
+            if (valueToBind.IsDefaultOrNull())
+                return onFailure("Null value");
+
             var raw = valueToBind.OpenReadStream().ToBytes();
 
             return GetWorkbook(
