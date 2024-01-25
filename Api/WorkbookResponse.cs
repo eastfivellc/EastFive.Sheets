@@ -24,6 +24,11 @@ namespace EastFive.Sheets.Api
             TResource1[] resource1s, TResource2[] resource2s, TResource3[] resource3s, TResource4[] resource4s,
             string filename = "");
 
+    [WorkbookResponse5]
+    public delegate IHttpResponse WorkbookResponse<TResource1, TResource2, TResource3, TResource4, TResource5>(
+            TResource1[] resource1s, TResource2[] resource2s, TResource3[] resource3s, TResource4[] resource4s, TResource5[] resource5s,
+            string filename = "");
+
     public abstract class WorkbookResponseAttribute : HttpGenericDelegateAttribute
     {
         public override HttpStatusCode StatusCode => HttpStatusCode.OK;
@@ -176,6 +181,58 @@ namespace EastFive.Sheets.Api
                 WriteSheet<TResource2>(wb, resource2s, new Type[] { typeof(TResource1), typeof(TResource3), typeof(TResource4) });
                 WriteSheet<TResource3>(wb, resource3s, new Type[] { typeof(TResource1), typeof(TResource2), typeof(TResource4) });
                 WriteSheet<TResource4>(wb, resource4s, new Type[] { typeof(TResource1), typeof(TResource2), typeof(TResource3) });
+            }
+        }
+    }
+
+    public class WorkbookResponse5Attribute : WorkbookResponseAttribute
+    {
+        public override HttpStatusCode StatusCode => HttpStatusCode.OK;
+
+        public override string Example => "<xml></xml>";
+
+        [InstigateMethod]
+        public IHttpResponse ContentResponse<TResource1, TResource2, TResource3, TResource4, TResource5>(
+            TResource1[] resource1s, TResource2[] resource2s, TResource3[] resource3s, TResource4[] resource4s, TResource5[] resource5s,
+            string filename = "")
+        {
+            var httpApiApp = this.httpApp as IApiApplication;
+            var response = new WorkbookResponse<TResource1, TResource2, TResource3, TResource4, TResource5>(
+                resource1s: resource1s, resource2s: resource2s, resource3s: resource3s, resource4s: resource4s, resource5s: resource5s,
+                filename,
+                httpApiApp, this.request);
+            return UpdateResponse(parameterInfo, httpApp, request, response);
+        }
+
+        protected class WorkbookResponse<TResource1, TResource2, TResource3, TResource4, TResource5> : WorkbookResponse
+        {
+            TResource1[] resource1s; TResource2[] resource2s;
+            TResource3[] resource3s; TResource4[] resource4s;
+            TResource5[] resource5s;
+
+            public WorkbookResponse(
+                    TResource1[] resource1s, TResource2[] resource2s,
+                    TResource3[] resource3s, TResource4[] resource4s,
+                    TResource5[] resource5s,
+                    string fileName,
+                    IApiApplication httpApiApp,
+                    IHttpRequest request)
+                : base(fileName, httpApiApp, request)
+            {
+                this.resource1s = resource1s;
+                this.resource2s = resource2s;
+                this.resource3s = resource3s;
+                this.resource4s = resource4s;
+                this.resource5s = resource5s;
+            }
+
+            protected override void WriteSheets(XLWorkbook wb)
+            {
+                WriteSheet<TResource1>(wb, resource1s, new Type[] { typeof(TResource2), typeof(TResource3), typeof(TResource4), typeof(TResource5) });
+                WriteSheet<TResource2>(wb, resource2s, new Type[] { typeof(TResource1), typeof(TResource3), typeof(TResource4), typeof(TResource5) });
+                WriteSheet<TResource3>(wb, resource3s, new Type[] { typeof(TResource1), typeof(TResource2), typeof(TResource4), typeof(TResource5) });
+                WriteSheet<TResource4>(wb, resource4s, new Type[] { typeof(TResource1), typeof(TResource2), typeof(TResource3), typeof(TResource5) });
+                WriteSheet<TResource5>(wb, resource5s, new Type[] { typeof(TResource1), typeof(TResource2), typeof(TResource3), typeof(TResource4) });
             }
         }
     }
