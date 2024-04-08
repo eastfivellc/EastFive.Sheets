@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Text;
 
 namespace EastFive.Sheets
 {
@@ -16,7 +17,10 @@ namespace EastFive.Sheets
 
         public string Name => dataTable.TableName;
 
-        public IEnumerable<string[]> ReadRows(Func<Type, object, Func<string>, string> serializer = default)
+        public IEnumerable<string[]> ReadRows(Func<Type, object,
+            Func<string>, string> discardSerializer = default,
+            bool discardAutoDecodeEncoding = default,
+            Encoding discardEncodingToUse = default)
         {
             foreach(DataRow row in dataTable.Rows)
             {

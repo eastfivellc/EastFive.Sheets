@@ -39,7 +39,10 @@ namespace EastFive.Sheets
             return cell;
         }
 
-        public IEnumerable<string[]> ReadRows(Func<Type, object, Func<string>, string> serializer = default)
+        public IEnumerable<string[]> ReadRows(Func<Type, object,
+            Func<string>, string> serializer = default,
+            bool discardAutoDecodeEncoding = default,
+            Encoding discardEncodingToUse = default)
         {
             var sharedStringsParts = workbookPart.GetPartsOfType<SharedStringTablePart>().ToArray();
             var sharedStrings = (sharedStringsParts.Count() > 0) ?

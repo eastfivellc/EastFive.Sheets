@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mime;
+using System.Text;
 using ClosedXML.Excel;
 using Microsoft.AspNetCore.Http;
 
@@ -72,7 +73,10 @@ namespace EastFive.Sheets.Api
 
             public string Name => ws.Name;
 
-            public IEnumerable<string[]> ReadRows(Func<Type, object, Func<string>, string> serializer = default)
+            public IEnumerable<string[]> ReadRows(Func<Type, object,
+                Func<string>, string> discardSerializer = default,
+                bool discardAutoDecodeEncoding = default,
+                Encoding discardEncodingToUse = default)
             {
                 return ws.Rows()
                     .Select(

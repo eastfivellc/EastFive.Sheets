@@ -24,12 +24,8 @@ namespace EastFive.Sheets
         public string Name => "sheet";
 
         public IEnumerable<string[]> ReadRows(
-            Func<Type, object, Func<string>, string> serializer = default) =>
-            ReadRows(serializer, autoDecodeEncoding: false, encodingToUse:default);
-
-        public IEnumerable<string[]> ReadRows(
-            Func<Type, object, Func<string>, string> serializer = default,
-            bool autoDecodeEncoding = false,
+            Func<Type, object, Func<string>, string> discardSerializer = default,
+            bool autoDecodeEncoding = default,
             Encoding encodingToUse = default)
         {
             stream.Seek(0, SeekOrigin.Begin);
