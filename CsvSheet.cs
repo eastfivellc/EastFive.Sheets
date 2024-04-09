@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using CsvHelper;
 
@@ -26,17 +25,16 @@ namespace EastFive.Sheets
         public IEnumerable<string[]> ReadRows(
             Func<Type, object, Func<string>, string> discardSerializer = default,
             bool autoDecodeEncoding = default,
-            Encoding encodingToUse = default)
+            Encoding[] encodingsToUse = default)
         {
             stream.Seek(0, SeekOrigin.Begin);
             var rawData = stream.ToBytes();
-            var encoding = encodingToUse.IsNotDefaultOrNull()?
-                encodingToUse
-                :
-                autoDecodeEncoding?
-                    DecodeEncoding(rawData)
-                    :
-                    default(Encoding);
+            var encoding = autoDecodeEncoding || encodingsToUse.NullToEmpty().Count() > 1
+                ? DecodeEncoding(rawData, encodingsToUse)
+                : encodingsToUse.AnyNullSafe()
+                    ? encodingsToUse.First()
+                    : default(Encoding);
+
             using (var rawDataStream = new MemoryStream(rawData))
             {
                 using (var parser = encoding.IsNotDefaultOrNull()?
@@ -63,11 +61,15 @@ namespace EastFive.Sheets
             }
         }
 
-        public Encoding DecodeEncoding(byte[] rawData)
+        public Encoding DecodeEncoding(byte[] rawData, Encoding[] encodings)
         {
-            var encodingProfiles = Encoding
-                .GetEncodings()
-                .Select(encodingInfo => Encoding.GetEncoding(encodingInfo.CodePage))
+            if (!encodings.AnyNullSafe())
+                encodings = Encoding
+                    .GetEncodings()
+                    .Select(encodingInfo => Encoding.GetEncoding(encodingInfo.CodePage))
+                    .ToArray();
+
+            var encodingProfiles = encodings
                 .Select(
                     encoding =>
                     {
@@ -140,20 +142,20 @@ namespace EastFive.Sheets
             if (encodingProfiles.None())
                 return Encoding.Default;
 
-            var averageCellCount = encodingProfiles
-                .Average(tpl => Math.Sqrt(tpl.totalCells));
+            //var averageCellCount = encodingProfiles
+            //    .Average(tpl => Math.Sqrt(tpl.totalCells));
 
-            var meanStdError = encodingProfiles
-                .Select(tpl => tpl.stdError)
-                .Average();
+            //var meanStdError = encodingProfiles
+            //    .Select(tpl => tpl.stdError)
+            //    .Average();
 
-            var meanRowSizeAvg = encodingProfiles
-                .Select(tpl => tpl.rowSizeAvg)
-                .Average();
+            //var meanRowSizeAvg = encodingProfiles
+            //    .Select(tpl => tpl.rowSizeAvg)
+            //    .Average();
 
-            var meanRows = encodingProfiles
-                .Select(tpl => tpl.rowCount)
-                .Average();
+            //var meanRows = encodingProfiles
+            //    .Select(tpl => tpl.rowCount)
+            //    .Average();
 
             var bySquareness = encodingProfiles
                 .Select(
@@ -175,14 +177,6 @@ namespace EastFive.Sheets
                 .ToArray();
 
             return bySquareness.First().encoding;
-
-            //Encoding SelectBest((Encoding encoding, int count, double mean, double stdDev, double stdError, double totalCells, double squareness, bool didThrowException)[] encodingProfiles)
-            //{
-
-            //}
-
-
-
         }
 
         public void WriteRows(string fileName, object[] rows)

@@ -42,7 +42,7 @@ namespace EastFive.Sheets
         public IEnumerable<string[]> ReadRows(Func<Type, object,
             Func<string>, string> serializer = default,
             bool discardAutoDecodeEncoding = default,
-            Encoding discardEncodingToUse = default)
+            Encoding[] discardEncodingsToUse = default)
         {
             var sharedStringsParts = workbookPart.GetPartsOfType<SharedStringTablePart>().ToArray();
             var sharedStrings = (sharedStringsParts.Count() > 0) ?

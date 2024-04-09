@@ -11,7 +11,7 @@ namespace EastFive.Sheets
         IEnumerable<string[]> ReadRows(Func<Type, object,
             Func<string>, string> serializer = default,
             bool autoDecodeEncoding = default,
-            Encoding encodingToUse = default);
+            Encoding[] encodingsToUse = default);
 
         void WriteRows(string fileName, object[] rows);
 
