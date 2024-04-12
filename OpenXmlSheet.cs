@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Packaging;
@@ -84,8 +83,8 @@ namespace EastFive.Sheets
                                     if(!TryGetDateFormat(out var dateFormatString))
                                         return (cellFormat, dateFormatString, false, false);
 
-                                    var (canUseFormatting, isNumber) = IsUsable();
-                                    return (cellFormat, dateFormatString, canUseFormatting, isNumber);
+                                    var (shouldUse, isDateFormat) = IsUsable();
+                                    return (cellFormat, dateFormatString, shouldUse, isDateFormat);
 
                                     (bool, bool) IsUsable()
                                     {
@@ -111,9 +110,20 @@ namespace EastFive.Sheets
 
                                     bool TryGetDateFormat(out string dateFormatString)
                                     {
-                                        if (stylesLookup.TryGetValue(cellFormat.NumberFormatId, out var numberFormat))
+                                        dateFormatString = default;
+                                        if (NumberFormatDictionary.TryGetValue(cellFormat.NumberFormatId, out string numberFormatString))
+                                            return false;
+
+                                        if (stylesLookup.TryGetValue(cellFormat.NumberFormatId, out var formatString))
                                         {
-                                            dateFormatString = numberFormat.Value;
+                                            // check for # or 0 found in number formats
+                                            if (formatString.Value.IndexOfAny(new[] { '#', '0' }) != -1)
+                                                return false;
+
+                                            dateFormatString = formatString.Value;
+                                            if (OpenXmlToDotNetStyleLookup.TryGetValue(dateFormatString, out string dotNetFormatString))
+                                                dateFormatString = dotNetFormatString;
+
                                             return true;
                                         }
 
@@ -290,7 +300,7 @@ namespace EastFive.Sheets
         }
 
         // https://learn.microsoft.com/en-us/previous-versions/office/developer/office-2010/ee857658(v=office.14)
-        private readonly Dictionary<uint, string> DateFormatDictionary = new Dictionary<uint, string>()
+        private static readonly Dictionary<uint, string> DateFormatDictionary = new Dictionary<uint, string>()
         {
             [14] = "dd/MM/yyyy",
             [15] = "d-MMM-yy",
@@ -335,6 +345,29 @@ namespace EastFive.Sheets
             [185] = "MMM-dd",
             [186] = "M/d/yyyy",
             [187] = "d-MMM-yyyy"
+        };
+
+        private static readonly Dictionary<uint, string> NumberFormatDictionary = new Dictionary<uint, string>()
+        {
+            [1] = "0",
+            [2] = "0.00",
+            [3] = "#,##0",
+            [4] = "#,##0.00",
+            [9] = "0%",
+            [10] = "0.00%",
+            [11] = "0.00E+00",
+            [12] = "# ?/?",
+            [13] = "# ??/??",
+            [37] = "#,##0 ;(#,##0)",
+            [38] = "#,##0 ;[Red](#,##0)",
+            [39] = "#,##0.00;(#,##0.00)",
+            [40] = "#,##0.00;[Red](#,##0.00)",
+            [48] = "##0.0E+0",
+        };
+
+        private static readonly Dictionary<string, string> OpenXmlToDotNetStyleLookup = new Dictionary<string, string>
+        {
+            { "yyyy/mm/dd", "yyyy/MM/dd" },
         };
 
         public void WriteRows(string fileName, object[] rows)
