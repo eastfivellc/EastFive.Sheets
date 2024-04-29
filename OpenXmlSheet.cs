@@ -116,14 +116,17 @@ namespace EastFive.Sheets
 
                                         if (stylesLookup.TryGetValue(cellFormat.NumberFormatId, out var formatString))
                                         {
+                                            if (OpenXmlToDotNetStyleLookup.TryGetValue(formatString.Value, out string dotNetFormatString))
+                                            {
+                                                dateFormatString = dotNetFormatString;
+                                                return true;
+                                            }
+
                                             // check for # or 0 found in number formats
-                                            if (formatString.Value.IndexOfAny(new[] { '#', '0' }) != -1)
+                                            if (formatString.Value.IndexOfAny(new[] { '#', '0'}) != -1)
                                                 return false;
 
                                             dateFormatString = formatString.Value;
-                                            if (OpenXmlToDotNetStyleLookup.TryGetValue(dateFormatString, out string dotNetFormatString))
-                                                dateFormatString = dotNetFormatString;
-
                                             return true;
                                         }
 
@@ -368,6 +371,7 @@ namespace EastFive.Sheets
         private static readonly Dictionary<string, string> OpenXmlToDotNetStyleLookup = new Dictionary<string, string>
         {
             { "yyyy/mm/dd", "yyyy/MM/dd" },
+            { "[$-409]mmm\\ dd\\,\\ yyyy;@", "MM/dd/yyyy" },
         };
 
         public void WriteRows(string fileName, object[] rows)
