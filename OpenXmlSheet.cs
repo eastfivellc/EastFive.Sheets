@@ -197,7 +197,8 @@ namespace EastFive.Sheets
 
                     string ConvertCell(Cell cell)
                     {
-                        if (cell.IsDefaultOrNull() || cell.CellValue.IsDefaultOrNull())
+                        if (cell.IsDefaultOrNull() ||
+                            (cell.CellValue.IsDefaultOrNull() && cell.InnerText.IsDefaultOrNull()))
                             return string.Empty;
 
                         try
@@ -282,9 +283,13 @@ namespace EastFive.Sheets
                                                 if (sharedStringIndex < sharedStrings.Length)
                                                     return sharedStrings[sharedStringIndex];
                                         }
-                                        if (String.Equals(dataType, "str", StringComparison.OrdinalIgnoreCase)) // Is string
+                                        else if (String.Equals(dataType, "str", StringComparison.OrdinalIgnoreCase)) // Is string
                                         {
                                             return cell.CellValue.Text;
+                                        }
+                                        else if (String.Equals(dataType, "inlineStr", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            return cell.InnerText;
                                         }
                                     }
                                 }
@@ -372,6 +377,10 @@ namespace EastFive.Sheets
         {
             { "yyyy/mm/dd", "yyyy/MM/dd" },
             { "[$-409]mmm\\ dd\\,\\ yyyy;@", "MM/dd/yyyy" },
+            { "[$-0409]MMM dd, yyyy;@", "MM/dd/yyyy" },
+            { "[$-10409]m/d/yyyy", "MM/dd/yyyy" },
+            { "[$-10409]mm/dd/yyyy", "MM/dd/yyyy" },
+            { "[$-10409]h:mm:ss\\ AM/PM",  "h:mm:ss tt"},
         };
 
         public void WriteRows(string fileName, object[] rows)
