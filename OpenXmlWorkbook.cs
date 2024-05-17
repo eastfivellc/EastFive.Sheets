@@ -27,7 +27,7 @@ namespace EastFive.Sheets
         {
             workbook = SpreadsheetDocument.Open(stream, false);
         }
-           
+        
         private OpenXmlWorkbook(SpreadsheetDocument workbook)
         {
             this.workbook = workbook;
