@@ -293,6 +293,8 @@ namespace EastFive.Sheets
                                         }
                                     }
                                 }
+                                if (cell.CellValue.IsDefaultOrNull())
+                                    return string.Empty;
                                 return cell.CellValue.Text;
                             }
                         }
