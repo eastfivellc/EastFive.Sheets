@@ -110,6 +110,12 @@ namespace EastFive.Sheets
 
                                     bool TryGetDateFormat(out string dateFormatString)
                                     {
+                                        if (cellFormat.NumberFormatId == 0)
+                                        {
+                                            dateFormatString = default;
+                                            return false;
+                                        }
+
                                         dateFormatString = default;
                                         if (NumberFormatDictionary.TryGetValue(cellFormat.NumberFormatId, out string numberFormatString))
                                             return false;
@@ -373,6 +379,7 @@ namespace EastFive.Sheets
             [39] = "#,##0.00;(#,##0.00)",
             [40] = "#,##0.00;[Red](#,##0.00)",
             [48] = "##0.0E+0",
+            [49] = "@",
         };
 
         private static readonly Dictionary<string, string> OpenXmlToDotNetStyleLookup = new Dictionary<string, string>
