@@ -291,7 +291,9 @@ namespace EastFive.Sheets
                                         }
                                         else if (String.Equals(dataType, "str", StringComparison.OrdinalIgnoreCase)) // Is string
                                         {
-                                            return cell.CellValue.Text;
+                                            if(cell.CellValue.TryIsNotDefaultOrNull(out var cellValue))
+                                                return cellValue.Text;
+                                            return "";
                                         }
                                         else if (String.Equals(dataType, "inlineStr", StringComparison.OrdinalIgnoreCase))
                                         {
