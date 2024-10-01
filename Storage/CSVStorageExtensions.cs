@@ -43,6 +43,28 @@ namespace EastFive.Sheets.Storage
                 contentType: contentType,
                 connectionStringConfigKey: EastFive.Azure.AppSettings.Persistence.DataLake.ConnectionString);
         }
-	}
+
+        public static async Task<BlobContentInfo> StorageSaveCSV(this IEnumerable<string[]> csvData,
+            AzureBlobFileSystemUri filePathAndName, ContentDisposition contentDisposition, ContentType contentType)
+        {
+            return await filePathAndName.BlobCreateOrUpdateAsync(
+                writeStreamAsync: async (blobStream) =>
+                {
+                    try
+                    {
+                        await blobStream.WriteCSVAsync(csvData, leaveOpen: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        var msgBytes = ex.Message.GetBytes(System.Text.Encoding.UTF8);
+                        await blobStream.WriteAsync(msgBytes, 0, msgBytes.Length, default);
+                    }
+                },
+                onSuccess: (blobInfo) => blobInfo,
+                contentDisposition: contentDisposition,
+                contentType: contentType,
+                connectionStringConfigKey: EastFive.Azure.AppSettings.Persistence.DataLake.ConnectionString);
+        }
+    }
 }
 
