@@ -122,18 +122,33 @@ namespace EastFive.Sheets
 
                                         if (stylesLookup.TryGetValue(cellFormat.NumberFormatId, out var formatString))
                                         {
-                                            if (OpenXmlToDotNetStyleLookup.TryGetValue(formatString.Value, out string dotNetFormatString))
+                                            var xlsxDateFormat = GetXlsxDateFormat();
+                                            if (OpenXmlToDotNetStyleLookup.TryGetValue(xlsxDateFormat, out string dotNetFormatString))
                                             {
                                                 dateFormatString = dotNetFormatString;
                                                 return true;
                                             }
 
-                                            // check for # or 0 found in number formats
+                                            // check for # or 0 found in number formats (number formats are of course excluded from date formats
                                             if (formatString.Value.IndexOfAny(new[] { '#', '0'}) != -1)
                                                 return false;
 
                                             dateFormatString = formatString.Value;
                                             return true;
+
+                                            string GetXlsxDateFormat()
+                                            {
+                                                // remove any localization code ex. `[$-010409]m/d/yyyy`
+                                                if (!formatString.Value.TryMatchRegex(
+                                                    "\\[\\$\\-(?<localization>[0-9]+)\\](?<dateformat>.+)", out var matches))
+                                                    return formatString.Value;
+
+                                                return matches
+                                                    .Where(match => match.name == "dateformat")
+                                                    .First(
+                                                        (match, discard) => match.value,
+                                                        () => formatString.Value);
+                                            }
                                         }
 
                                         return DateFormatDictionary.TryGetValue(cellFormat.NumberFormatId, out dateFormatString);
@@ -387,11 +402,11 @@ namespace EastFive.Sheets
         private static readonly Dictionary<string, string> OpenXmlToDotNetStyleLookup = new Dictionary<string, string>
         {
             { "yyyy/mm/dd", "yyyy/MM/dd" },
-            { "[$-409]mmm\\ dd\\,\\ yyyy;@", "MM/dd/yyyy" },
-            { "[$-0409]MMM dd, yyyy;@", "MM/dd/yyyy" },
-            { "[$-10409]m/d/yyyy", "MM/dd/yyyy" },
-            { "[$-10409]mm/dd/yyyy", "MM/dd/yyyy" },
-            { "[$-10409]h:mm:ss\\ AM/PM",  "h:mm:ss tt"},
+            { "mmm\\ dd\\,\\ yyyy;@", "MM/dd/yyyy" },
+            { "MMM dd, yyyy;@", "MM/dd/yyyy" },
+            { "m/d/yyyy", "MM/dd/yyyy" },
+            { "mm/dd/yyyy", "MM/dd/yyyy" },
+            { "h:mm:ss\\ AM/PM",  "h:mm:ss tt"},
         };
 
         public void WriteRows(string fileName, object[] rows)
