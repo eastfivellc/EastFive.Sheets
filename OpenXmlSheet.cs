@@ -130,10 +130,10 @@ namespace EastFive.Sheets
                                             }
 
                                             // check for # or 0 found in number formats (number formats are of course excluded from date formats
-                                            if (formatString.Value.IndexOfAny(new[] { '#', '0'}) != -1)
+                                            if (xlsxDateFormat.IndexOfAny(new[] { '#', '0'}) != -1)
                                                 return false;
 
-                                            dateFormatString = formatString.Value;
+                                            dateFormatString = xlsxDateFormat;
                                             return true;
 
                                             string GetXlsxDateFormat()
