@@ -62,8 +62,7 @@ namespace EastFive.Sheets.Storage
                 },
                 onSuccess: (blobInfo) => blobInfo,
                 contentDisposition: contentDisposition,
-                contentType: contentType,
-                connectionStringConfigKey: EastFive.Azure.AppSettings.Persistence.DataLake.ConnectionString);
+                contentType: contentType);
         }
     }
 }
