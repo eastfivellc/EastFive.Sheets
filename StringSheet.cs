@@ -93,6 +93,15 @@ namespace EastFive.Sheets
 
         }
 
+        public StringSheet Truncate(int rowsToTake)
+        {
+            var newRows = data
+                .Take(rowsToTake)
+                .ToArray();
+
+            return new StringSheet(newRows);
+        }
+
         public StringSheet SanitizeCells(Func<string, string> callback)
         {
             var newRows = data
