@@ -3,7 +3,6 @@ using ClosedXML.Excel;
 using EastFive.Sheets.Api;
 using System.Linq;
 using System.Collections.Generic;
-using Irony;
 using EastFive.Linq;
 
 namespace EastFive.Sheets
