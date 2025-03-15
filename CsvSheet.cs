@@ -8,6 +8,7 @@ using CsvHelper;
 using EastFive;
 using EastFive.Extensions;
 using EastFive.Linq;
+using EastFive.Serialization;
 
 namespace EastFive.Sheets
 {
@@ -69,6 +70,27 @@ namespace EastFive.Sheets
                     .Select(encodingInfo => Encoding.GetEncoding(encodingInfo.CodePage))
                     .ToArray();
 
+            var profileCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+            
+            var encodingProfileNewMethod = encodings
+                .Select(
+                    encoding =>
+                    {
+                            var matchCount = profileCharacters
+                                .Where(
+                                    c =>
+                                    {
+                                        var charBytes = $"{c}".GetBytes(encoding);
+                                        var rawDataSpan = rawData.AsSpan();
+                                        var indexOfPattern = rawDataSpan.IndexOf(charBytes);
+                                        return indexOfPattern >= 0;
+                                    })
+                                .Count();
+                            return (encoding, matchCount);
+                    })
+                .Max(ep => ep.matchCount, ep => ep.encoding, () => default);
+            return encodingProfileNewMethod;
+
             var encodingProfiles = encodings
                 .Select(
                     encoding =>
@@ -83,6 +105,8 @@ namespace EastFive.Sheets
                                 {
                                     parser.TextFieldType = Microsoft.VisualBasic.FileIO.FieldType.Delimited;
                                     parser.SetDelimiters(",");
+                                    try
+                                    {
                                     while (!parser.EndOfData)
                                     {
                                         string[] fields = new string[0];
@@ -96,6 +120,10 @@ namespace EastFive.Sheets
                                             continue;
                                         }
                                         rowSizes.Add(fields.Length);
+                                    }
+                                    } catch (Exception)
+                                    {
+                                        didThrowException = true;
                                     }
                                 }
                             }
