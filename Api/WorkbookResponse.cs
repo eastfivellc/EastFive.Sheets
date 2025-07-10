@@ -1,16 +1,10 @@
 ﻿using System;
 using EastFive.Api;
-using EastFive.Api.Sheets;
-using EastFive.Reflection;
-
-using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Reflection;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
 using EastFive.Extensions;
-using System.Linq;
 using EastFive.Serialization;
 
 namespace EastFive.Sheets.Api
@@ -18,6 +12,10 @@ namespace EastFive.Sheets.Api
     [WorkbookResponse1]
     public delegate IHttpResponse WorkbookResponse<TResource1>(
             TResource1[] resource1s, string filename = "");
+
+    [WorkbookResponse2]
+    public delegate IHttpResponse WorkbookResponse<TResource1, TResource2>(
+            TResource1[] resource1s, TResource2[] resource2s, string filename = "");
 
     [WorkbookResponse4]
     public delegate IHttpResponse WorkbookResponse<TResource1, TResource2, TResource3, TResource4>(
@@ -137,6 +135,48 @@ namespace EastFive.Sheets.Api
         }
     }
 
+    public class WorkbookResponse2Attribute : WorkbookResponseAttribute
+    {
+        public override HttpStatusCode StatusCode => HttpStatusCode.OK;
+
+        public override string Example => "<xml></xml>";
+
+        [InstigateMethod]
+        public IHttpResponse ContentResponse<TResource1, TResource2>(
+            TResource1[] resource1s, TResource2[] resource2s,
+            string filename = "")
+        {
+            var httpApiApp = this.httpApp as IApiApplication;
+            var response = new WorkbookResponse<TResource1, TResource2>(
+                resource1s:resource1s, resource2s:resource2s,
+                filename,
+                httpApiApp, this.request);
+            return UpdateResponse(parameterInfo, httpApp, request, response);
+        }
+
+        protected class WorkbookResponse<TResource1, TResource2> : WorkbookResponse
+        {
+            TResource1[] resource1s; TResource2[] resource2s;
+
+            public WorkbookResponse(
+                    TResource1[] resource1s, TResource2[] resource2s,
+                    string fileName,
+                    IApiApplication httpApiApp,
+                    IHttpRequest request)
+                : base(fileName, httpApiApp, request)
+            {
+                this.resource1s = resource1s;
+                this.resource2s = resource2s;
+            }
+
+            protected override void WriteSheets(XLWorkbook wb)
+            {
+                WriteSheet<TResource1>(wb, resource1s, new Type[] { typeof(TResource2)});
+                WriteSheet<TResource2>(wb, resource2s, new Type[] { typeof(TResource1)});
+            }
+        }
+    }
+
     public class WorkbookResponse4Attribute : WorkbookResponseAttribute
     {
         public override HttpStatusCode StatusCode => HttpStatusCode.OK;
@@ -150,7 +190,7 @@ namespace EastFive.Sheets.Api
         {
             var httpApiApp = this.httpApp as IApiApplication;
             var response = new WorkbookResponse<TResource1, TResource2, TResource3, TResource4>(
-                resource1s:resource1s, resource2s:resource2s, resource3s:resource3s, resource4s:resource4s,
+                resource1s: resource1s, resource2s: resource2s, resource3s: resource3s, resource4s: resource4s,
                 filename,
                 httpApiApp, this.request);
             return UpdateResponse(parameterInfo, httpApp, request, response);
