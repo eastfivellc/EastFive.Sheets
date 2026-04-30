@@ -281,8 +281,8 @@ namespace EastFive.Api.Sheets
         {
             if (obj is IReferenceable)
             {
-                var webId = obj as IReferenceable;
-                var objId = webId.id;
+                var iref = obj as IReferenceable;
+                var objId = iref.id;
 
                 var resourceDisplayValue = obj.GetType().Name;
                 if (property.Name == "Id" || !lookups.ContainsKey(objId)) // TODO: Use custom property attributes
